@@ -391,7 +391,7 @@ CREATE (e5:AddExternalAccount {
 CREATE (fraudAccount:Account:External:HighRiskJurisdiction {
     accountNumber: "FRAUD123456789",
     accountType: null,
-    openDate: null,
+    openedDate: null,
     closedDate: null,
     suspendedDate: null
 })

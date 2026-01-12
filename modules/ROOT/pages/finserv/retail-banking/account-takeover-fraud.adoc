@@ -312,10 +312,10 @@ CREATE (newAddr:Address {
 //--------------------
 // Create Accounts
 //--------------------
-CREATE (a1:Account:Internal {accountNumber: "ACC001", accountType: "CURRENT", openDate: datetime("2024-01-01T00:00:00"), closedDate: null, suspendedDate: null})
-CREATE (a2:Account:Internal {accountNumber: "ACC002", accountType: "CURRENT", openDate: datetime("2024-01-01T00:00:00"), closedDate: null, suspendedDate: null})
-CREATE (a3:Account:Internal {accountNumber: "ACC003", accountType: "CURRENT", openDate: datetime("2024-01-01T00:00:00"), closedDate: null, suspendedDate: null})
-CREATE (fraudAccount:Account:External:HighRiskJurisdiction {accountNumber: "FRAUD123456789", accountType: null, openDate: null, closedDate: null, suspendedDate: null})
+CREATE (a1:Account:Internal {accountNumber: "ACC001", accountType: "CURRENT", openedDate: datetime("2024-01-01T00:00:00"), closedDate: null, suspendedDate: null})
+CREATE (a2:Account:Internal {accountNumber: "ACC002", accountType: "CURRENT", openedDate: datetime("2024-01-01T00:00:00"), closedDate: null, suspendedDate: null})
+CREATE (a3:Account:Internal {accountNumber: "ACC003", accountType: "CURRENT", openedDate: datetime("2024-01-01T00:00:00"), closedDate: null, suspendedDate: null})
+CREATE (fraudAccount:Account:External:HighRiskJurisdiction {accountNumber: "FRAUD123456789", accountType: null, openedDate: null, closedDate: null, suspendedDate: null})
 
 //--------------------
 // Create Sessions (Normal, Failed, and ATO Session)
