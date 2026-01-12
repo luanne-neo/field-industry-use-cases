@@ -259,11 +259,14 @@ CREATE (isp2:ISP {name: "Orange", createdAt: datetime("2024-01-01T00:00:00")})
 CREATE (isp3:ISP {name: "Verizon", createdAt: datetime("2024-01-01T00:00:00")})
 CREATE (isp4:ISP {name: "China Telecom", createdAt: datetime("2024-01-01T00:00:00")})
 
-CREATE (l1:Location {city: "London", country: "UK", latitude: 51.5074, longitude: -0.1278, createdAt: datetime("2024-01-01T00:00:00")})
-CREATE (l2:Location {city: "Paris", country: "France", latitude: 48.8566, longitude: 2.3522, createdAt: datetime("2024-01-01T00:00:00")})
-CREATE (l3:Location {city: "Beijing", country: "China", latitude: 39.9042, longitude: 116.4074, createdAt: datetime("2024-01-01T00:00:00")})
-CREATE (l4:Location {city: "Lagos", country: "Nigeria", latitude: 6.5244, longitude: 3.3792, createdAt: datetime("2024-01-01T00:00:00")})
-CREATE (l5:Location {city: "New York", country: "USA", latitude: 40.7128, longitude: -74.0060, createdAt: datetime("2024-01-01T00:00:00")})
+//
+// Create Location nodes
+//
+CREATE (l1:Location {city: "London", postCode: "XX30 1XX", country: "UK", latitude: 51.5074, longitude: -0.1278, createdAt: datetime("2024-01-01T00:00:00")})
+CREATE (l2:Location {city: "Paris", postCode: "75001", country: "France", latitude: 48.8566, longitude: 2.3522, createdAt: datetime("2024-01-01T00:00:00")})
+CREATE (l3:Location {city: "Beijing", postCode: "100000", country: "China", latitude: 39.9042, longitude: 116.4074, createdAt: datetime("2024-01-01T00:00:00")})
+CREATE (l4:Location {city: "Lagos", postCode: "100001", country: "Nigeria", latitude: 6.5244, longitude: 3.3792, createdAt: datetime("2024-01-01T00:00:00")})
+CREATE (l5:Location {city: "New York", postCode: "10001", country: "USA", latitude: 40.7128, longitude: -74.0060, createdAt: datetime("2024-01-01T00:00:00")})
 
 //--------------------
 // Create IP Addresses
@@ -278,7 +281,7 @@ CREATE (ip5:IP {ipAddress: "172.16.0.1", createdAt: datetime("2024-03-01T11:05:0
 // Create Contact Information (Original)
 //--------------------
 CREATE (originalPhone:Phone {number: "447971020304", countryCode: "+44", createdAt: datetime("2024-01-01T00:00:00")})
-CREATE (originalEmail:Email {address: "john@example.com", domain: "example.com", createdAt: datetime("2024-01-01T00:00:00")})
+CREATE (originalEmail:Email {address: "john@example.com", domain: "example.com", emailType: "personal", createdAt: datetime("2024-01-01T00:00:00")})
 CREATE (originalAddr:Address {
     addressLine1: "123 High Street",
     addressLine2: "Flat 4B",
@@ -294,7 +297,7 @@ CREATE (originalAddr:Address {
 // Create Contact Information (Changed by Attacker)
 //--------------------
 CREATE (newPhone:Phone {number: "447800123456", countryCode: "+44", createdAt: datetime("2024-03-01T14:35:00")})
-CREATE (newEmail:Email {address: "attacker.new@protonmail.com", domain: "protonmail.com", createdAt: datetime("2024-03-01T14:37:00")})
+CREATE (newEmail:Email {address: "attacker.new@protonmail.com", domain: "protonmail.com", emailType: "personal", createdAt: datetime("2024-03-01T14:40:00")})
 CREATE (newAddr:Address {
     addressLine1: "999 Fraud Street",
     addressLine2: "Unit 13",
@@ -484,11 +487,19 @@ In this query, we will identify devices that have been used to access multiple d
 
 View Graph:
 ```cypher
-// Show the relationships between suspicious devices and multiple accounts
-MATCH path=(d:Device)-[:USED_BY]->(c:Customer)-[:HAS_ACCOUNT]->(a:Account)
-WITH d, count(c) as accountCount
-WHERE accountCount > 1
+// Find all devices and the customers who use them MATCH (d:Device)-[:USED_BY]→(c:Customer)
+MATCH (d:Device)-[:USED_BY]->(c:Customer)
+
+// Count how many different customers use each device WITH d, count(DISTINCT c) as customerCount
+WITH d, count(DISTINCT c) as customerCount
+
+// Flag devices used by more than one customer WHERE customerCount > 1
+WHERE customerCount > 1
+
+// Retrieve the full network: device → customers → accounts MATCH path=(d)-[:USED_BY]→(c:Customer)-[:HAS_ACCOUNT]→(a:Account)
 MATCH path=(d)-[:USED_BY]->(c:Customer)-[:HAS_ACCOUNT]->(a:Account)
+
+// Return the suspicious pattern for investigation RETURN path
 RETURN path
 ```
 
