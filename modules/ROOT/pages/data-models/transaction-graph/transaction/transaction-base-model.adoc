@@ -24,7 +24,7 @@ link:{attachmentsdir}/llm-transaction-base-model.txt[RAW Text File,window=_blank
 
 ** `accountNumber` (String): Unique account identifier (e.g., sort code and account number, IBAN)
 ** `accountType` (String): Optional: Type of account (e.g., "CURRENT", "SAVINGS", "BUSINESS", "LOAN")
-** `openDate` (DateTime): Optional: Date and time when the account was first opened
+** `openeDate` (DateTime): Optional: Date and time when the account was first opened
 ** `closedDate` (DateTime): Optional: Date and time when the account was permanently closed (null if still active)
 ** `suspendedDate` (DateTime): Optional: Date and time when the account was temporarily suspended (null if not suspended)
 
@@ -562,14 +562,14 @@ CREATE (s)-[:SESSION_USES_DEVICE]->(d)
 CREATE (a:Account:Internal {
     accountNumber: "ACC001", 
     accountType: "CURRENT", 
-    openDate: datetime("2024-01-01T00:00:00"),
+    openeDate: datetime("2024-01-01T00:00:00"),
     closedDate: null,
     suspendedDate: null
 })
 CREATE (a2:Account:External:HighRiskJurisdiction {
     accountNumber: "ACC002", 
     accountType: null, 
-    openDate: null,
+    openeDate: null,
     closedDate: null,
     suspendedDate: null
 })
