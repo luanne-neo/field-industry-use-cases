@@ -49,7 +49,7 @@ The following fraud investigation additions are proposed changes pending finaliz
 
   - `accountNumber` (String): Unique account identifier (e.g., sort code and account number, IBAN)
   - `accountType` (String): Optional: Type of account (e.g., "CURRENT", "SAVINGS", "BUSINESS", "LOAN")
-  - `openeDate` (DateTime): Optional: Date and time when the account was first opened
+  - `openedDate` (DateTime): Optional: Date and time when the account was first opened
   - `closedDate` (DateTime): Optional: Date and time when the account was permanently closed (null if still active)
   - `suspendedDate` (DateTime): Optional: Date and time when the account was temporarily suspended (null if not suspended)
 
@@ -693,14 +693,14 @@ CREATE (s)-[:SESSION_USES_DEVICE]->(d)
 CREATE (a:Account:Internal {
     accountNumber: "ACC001", 
     accountType: "CURRENT", 
-    openeDate: datetime("2024-01-01T00:00:00"),
+    openedDate: datetime("2024-01-01T00:00:00"),
     closedDate: null,
     suspendedDate: null
 })
 CREATE (a2:Account:External:HighRiskJurisdiction {
     accountNumber: "ACC002", 
     accountType: null, 
-    openeDate: null,
+    openedDate: null,
     closedDate: null,
     suspendedDate: null
 })
@@ -810,7 +810,7 @@ CREATE (cp)-[:HAS_ACCOUNT {
 CREATE (a3:Account:Internal:Flagged {
     accountNumber: "ACC003",
     accountType: "CURRENT",
-    openeDate: datetime("2023-06-15T00:00:00"),
+    openedDate: datetime("2023-06-15T00:00:00"),
     closedDate: null,
     suspendedDate: null
 })
