@@ -7,7 +7,7 @@ This document presents a simplified, event-oriented extension of the standard Tr
 
 *LLM Version of Data Model:*
 
-link:{attachmentsdir}/llm-fraud-event-sequence-model.txt[RAW Text File,window=_blank]
+link:{attachmentsdir}/fraud-event-sequence-model.txt[RAW Text File,window=_blank]
 
 == 1. Business Scenario
 

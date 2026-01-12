@@ -7,7 +7,7 @@ This document defines a standardised Neo4j data model for banking transactions a
 
 *LLM Version of Data Model:*
 
-link:{attachmentsdir}/llm-transaction-base-model.txt[RAW Text File,window=_blank]
+link:{attachmentsdir}/transaction-base-model.txt[RAW Text File,window=_blank]
 
 == 1. Node Labels and Properties
 
