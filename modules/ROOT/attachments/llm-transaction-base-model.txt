@@ -25,21 +25,48 @@ This document defines a standardised Neo4j data model for banking transactions a
 
 ## 1. Node Labels and Properties
 
+**Proposed Changes**
+
+The following fraud investigation additions are proposed changes pending finalization:
+
+* **Account labels**: `Flagged`, `UnderInvestigation`, `Confirmed`
+* **New nodes**: `Alert`, `Case`
+====
+
 ### Account
-- Labels:
+
+*Labels:*
+
   - `Account`: (Required) Base label for all bank accounts in the system
   - `Internal`: Label for accounts held within this bank (our customers' accounts). Essential for identifying fund flows leaving the organisation (Internal→External transactions) or incoming liquidity (External→Internal transactions)
   - `External`: Label for accounts held at other financial institutions. Critical for monitoring cross-institutional transfers and identifying potential money laundering patterns
   - `HighRiskJurisdiction`: Label for accounts in countries with elevated regulatory or compliance risks
-- Properties:
+  - `Flagged`: _(Proposed)_ Optional label for accounts flagged by fraud detection rules (useful for visualization and demo queries)
+  - `UnderInvestigation`: _(Proposed)_ Optional label for accounts currently under fraud investigation
+  - `Confirmed`: _(Proposed)_ Optional label for accounts confirmed as fraudulent or compromised
+
+*Properties:*
+
   - `accountNumber` (String): Unique account identifier (e.g., sort code and account number, IBAN)
   - `accountType` (String): Optional: Type of account (e.g., "CURRENT", "SAVINGS", "BUSINESS", "LOAN")
   - `openeDate` (DateTime): Optional: Date and time when the account was first opened
   - `closedDate` (DateTime): Optional: Date and time when the account was permanently closed (null if still active)
   - `suspendedDate` (DateTime): Optional: Date and time when the account was temporarily suspended (null if not suspended)
 
+### Alert _(Proposed)_
+
+*Properties:*
+
+  - `alertId` (String): Unique identifier for the alert
+  - `ruleName` (String): Human-readable name of the fraud detection rule that triggered this alert
+  - `ruleId` (String): Optional: System identifier for the rule (useful for tracking rule versions)
+  - `severity` (String): Optional: Alert severity level (e.g., "LOW", "MEDIUM", "HIGH", "CRITICAL")
+  - `triggeredAt` (DateTime): Timestamp when the alert was triggered
+
 ### Address
-- Properties:
+
+*Properties:*
+
   - `addressLine1` (String): Primary address line containing house/building number and street name
   - `addressLine2` (String): Optional: Secondary address details such as flat number, building name, or estate
   - `postTown` (String): Post town as defined by Royal Mail (the town or city for postal delivery)
@@ -49,8 +76,22 @@ This document defines a standardised Neo4j data model for banking transactions a
   - `longitude` (Float): Optional: Geographic longitude coordinate for precise location mapping
   - `createdAt` (DateTime): Timestamp when this address was first recorded in the system
 
+### Case _(Proposed)_
+
+*Properties:*
+
+  - `caseId` (String): Unique identifier for the investigation case
+  - `status` (String): Current status of the investigation (e.g., "OPEN", "UNDER_INVESTIGATION", "CLOSED", "ESCALATED")
+  - `outcome` (String): Optional: Result of the investigation (e.g., "PROVEN_FRAUD", "FRAUD_UNPROVABLE", "NOT_FRAUD", "EXCESSIVE_CLAIM")
+  - `financialStakes` (Float): Optional: Monetary value at risk or involved in the case
+  - `investigatedBy` (String): Optional: User ID or name of the investigator assigned to this case
+  - `createdAt` (DateTime): Timestamp when the case was opened
+  - `closedAt` (DateTime): Optional: Timestamp when the case was closed (null if still open)
+
 ### Counterparty
-- Properties:
+
+*Properties:*
+
   - `counterpartyId` (String): Unique system identifier for the counterparty entity
   - `name` (String): Legal name of the counterparty (person's full name or registered company name)
   - `type` (String): Classification of counterparty (e.g., "INDIVIDUAL", "BUSINESS", "GOVERNMENT", "CHARITY")
@@ -58,12 +99,16 @@ This document defines a standardised Neo4j data model for banking transactions a
   - `createdAt` (DateTime): Timestamp when this counterparty was first recorded in the system
 
 ### Country
-- Properties:
+
+*Properties:*
+
   - `code` (String): Two-letter ISO 3166-1 alpha-2 country code (e.g., "GB" for United Kingdom, "US" for United States)
   - `name` (String): Official full country name in English
 
 ### Customer
-- Properties:
+
+*Properties:*
+
   - `customerId` (String): Unique system identifier for the customer record
   - `firstName` (String): Optional: Customer's given name (first name)
   - `middleName` (String): Optional: Customer's middle name(s) or initial(s)
@@ -73,14 +118,18 @@ This document defines a standardised Neo4j data model for banking transactions a
   - `countryOfBirth` (String): Optional: ISO 3166-1 country code where the customer was born (may differ from nationality)
 
 ### Device
-- Properties:
+
+*Properties:*
+
   - `deviceId` (String): Unique fingerprint or identifier for the device accessing the system
   - `deviceType` (String): Optional: Category of device (e.g., "mobile", "desktop", "tablet", "unknown")
   - `userAgent` (String): Optional: Browser or application user agent string containing device and software information
   - `createdAt` (DateTime): Timestamp when this device was first detected and recorded in the system
 
 ### DrivingLicense
-- Properties:
+
+*Properties:*
+
   - `licenseNumber` (String): Unique driving licence number as printed on the physical document
   - `issueDate` (Date): Optional: Date when the driving licence was originally issued
   - `expiryDate` (Date): Optional: Date when the driving licence expires and requires renewal
@@ -88,29 +137,39 @@ This document defines a standardised Neo4j data model for banking transactions a
   - `createdAt` (DateTime): Timestamp when this driving licence record was first created in the system
 
 ### Email
-- Properties:
+
+*Properties:*
+
   - `address` (String): Complete email address (e.g., "john.smith@example.com")
   - `domain` (String): Optional: Domain portion of the email address (e.g., "example.com")
   - `createdAt` (DateTime): Timestamp when this email address was first recorded in the system
 
 ### Face
-- Properties:
+
+*Properties:*
+
   - `faceId` (String): Unique identifier for the face biometric record
   - `embedding` (List of Float): High-dimensional vector representation of facial features (typically 512-1536 dimensions)
   - `createdAt` (DateTime): Timestamp when this facial biometric record was created in the system
 
 ### IP
-- Properties:
+
+*Properties:*
+
   - `ipAddress` (String): Internet Protocol address used to access the system (IPv4 or IPv6 format)
   - `createdAt` (DateTime): Timestamp when this IP address was first observed in the system
 
 ### ISP
-- Properties:
+
+*Properties:*
+
   - `name` (String): Name of the Internet Service Provider or telecommunications company
   - `createdAt` (DateTime): Timestamp when this ISP was first recorded in the system
 
 ### Location
-- Properties:
+
+*Properties:*
+
   - `city` (String): Name of the city or major population centre
   - `postCode` (String): Postal code or ZIP code for the general area (may be partial for privacy)
   - `country` (String): ISO 3166-1 country code where this location is situated
@@ -119,7 +178,9 @@ This document defines a standardised Neo4j data model for banking transactions a
   - `createdAt` (DateTime): Timestamp when this location was first recorded in the system
 
 ### Movement
-- Properties:
+
+*Properties:*
+
   - `movementId` (String): Unique system identifier for this individual movement
   - `amount` (Float): Monetary value of this specific movement (always positive)
   - `currency` (String): Three-letter ISO 4217 currency code (e.g., "GBP", "USD", "EUR")
@@ -132,7 +193,9 @@ This document defines a standardised Neo4j data model for banking transactions a
   - `createdAt` (DateTime): Timestamp when this movement record was initially created in the system
 
 ### Passport
-- Properties:
+
+*Properties:*
+
   - `passportNumber` (String): Unique passport number as printed on the document
   - `issueDate` (Date): Optional: Date when the passport was originally issued
   - `expiryDate` (Date): Optional: Date when the passport expires and requires renewal
@@ -141,19 +204,25 @@ This document defines a standardised Neo4j data model for banking transactions a
   - `createdAt` (DateTime): Timestamp when this passport record was first created in the system
 
 ### Phone
-- Properties:
-  - `number` (String): Complete phone number including country code (e.g., "447971020304")
+
+*Properties:*
+
+  - `phoneNumber` (String): Complete phone number including country code
   - `countryCode` (String): Optional: International dialling code with plus prefix (e.g., "+44", "+1")
   - `createdAt` (DateTime): Timestamp when this phone number was first recorded in the system
 
 ### Session
-- Properties:
+
+*Properties:*
+
   - `sessionId` (String): Unique identifier for the user session or login attempt
   - `status` (String): Optional: Outcome of the session (e.g., "success", "failed", "suspicious", "timeout")
   - `createdAt` (DateTime): Timestamp when the session was initiated
 
 ### Transaction
-- Properties:
+
+*Properties:*
+
   - `transactionId` (String): Unique system identifier for the transaction
   - `amount` (Float): Monetary value of the transaction (always positive, direction indicated by relationships)
   - `currency` (String): Three-letter ISO 4217 currency code (e.g., "GBP", "USD", "EUR")
@@ -163,124 +232,170 @@ This document defines a standardised Neo4j data model for banking transactions a
 
 ## 2. Relationship Types and Properties
 
+**Proposed Changes**
+
+The following fraud investigation relationships are proposed changes pending finalization:
+
+* **`:SUBJECT_OF`** (Account->Case, Customer->Case)
+* **`:TRIGGERED`** (Alert->Case)
+====
+
 ### :BENEFITS_TO
-- Direction: Transaction->Account
-- Properties: None
-- Description: Links a transaction to the account that receives the funds (the destination or beneficiary account)
+
+* **Direction:** Transaction->Account
+* **Properties:** None
+* **Description:** Links a transaction to the account that receives the funds (the destination or beneficiary account)
 
 ### :HAS_ACCOUNT
-- Direction: Customer->Account
-- Properties:
+
+* **Direction:** Customer->Account
+* **Properties:**
   - `role` (String): Customer's role on the account (e.g., "owner", "joint", "authorised_signatory")
   - `since` (DateTime): Date and time when this account relationship was established
 
 ### :HAS_ACCOUNT
-- Direction: Counterparty->Account
-- Properties:
+
+* **Direction:** Counterparty->Account
+* **Properties:**
   - `since` (DateTime): Date and time when this counterparty-account relationship was first recorded
 
 ### :HAS_ADDRESS
-- Direction: Customer->Address
-- Properties:
+
+* **Direction:** Customer->Address
+* **Properties:**
   - `addedAt` (DateTime): When this address was first linked to the customer
   - `lastChangedAt` (DateTime): When the address details were last updated
   - `isCurrent` (Boolean): Whether this is the customer's current residential address
 
 ### :HAS_ADDRESS
-- Direction: Counterparty->Address
-- Properties:
+
+* **Direction:** Counterparty->Address
+* **Properties:**
   - `since` (DateTime): When this address was first linked to the counterparty
   - `isCurrent` (Boolean): Whether this is the counterparty's current registered address
 
 ### :HAS_DRIVING_LICENSE
-- Direction: Customer->DrivingLicense
-- Properties:
+
+* **Direction:** Customer->DrivingLicense
+* **Properties:**
   - `verificationDate` (DateTime): When the driving licence was verified by the bank
   - `verificationMethod` (String): How verification was performed (e.g., "BRANCH_VERIFIED", "DIGITAL_SCAN", "VIDEO_KYC")
   - `verificationStatus` (String): Current verification status (e.g., "VERIFIED", "PENDING", "REJECTED", "EXPIRED")
 
 ### :HAS_EMAIL
-- Direction: Customer->Email
-- Properties:
+
+* **Direction:** Customer->Email
+* **Properties:**
   - `since` (DateTime): When this email address was first linked to the customer record
 
 ### :HAS_FACE
-- Direction: Customer->Face
-- Properties:
+
+* **Direction:** Customer->Face
+* **Properties:**
   - `verificationDate` (DateTime): When the facial biometric was verified against the customer
   - `verificationMethod` (String): How facial verification was performed (e.g., "SELFIE", "VIDEO_KYC", "BRANCH_PHOTO")
   - `verificationStatus` (String): Current verification status (e.g., "VERIFIED", "PENDING", "REJECTED")
 
-
 ### :HAS_NATIONALITY
-- Direction: Customer->Country
-- Properties: None
-- Description: Links a customer to their country of citizenship or nationality (customers may have multiple nationalities)
+
+* **Direction:** Customer->Country
+* **Properties:** None
+* **Description:** Links a customer to their country of citizenship or nationality (customers may have multiple nationalities)
 
 ### :HAS_PASSPORT
-- Direction: Customer->Passport
-- Properties:
+
+* **Direction:** Customer->Passport
+* **Properties:**
   - `verificationDate` (DateTime): When the passport was verified by the bank
   - `verificationMethod` (String): How verification was performed (e.g., "BRANCH_VERIFIED", "DIGITAL_SCAN", "VIDEO_KYC")
   - `verificationStatus` (String): Current verification status (e.g., "VERIFIED", "PENDING", "REJECTED", "EXPIRED")
 
 ### :HAS_PHONE
-- Direction: Customer->Phone
-- Properties:
+
+* **Direction:** Customer->Phone
+* **Properties:**
   - `since` (DateTime): When this phone number was first linked to the customer record
 
 ### :IMPLIED
-- Direction: Transaction->Movement
-- Properties:
+
+* **Direction:** Transaction->Movement
+* **Properties:**
   - `totalMovements` (Integer): Total number of movements that will result from this transaction
-- Description: Links a transaction to its component movements when a single transaction results in multiple separate payments (e.g., insurance claim paid in instalments, loan disbursement in tranches)
+* **Description:** Links a transaction to its component movements when a single transaction results in multiple separate payments (e.g., insurance claim paid in instalments, loan disbursement in tranches)
 
 ### :IS_ALLOCATED_TO
-- Direction: IP->ISP
-- Properties:
+
+* **Direction:** IP->ISP
+* **Properties:**
   - `createdAt` (DateTime): Timestamp when this IP address allocation was first recorded
-- Description: Links an IP address to the Internet Service Provider that owns or manages that IP address range
+* **Description:** Links an IP address to the Internet Service Provider that owns or manages that IP address range
 
 ### :IS_HOSTED
-- Direction: Account->Country
-- Properties: None
-- Description: Links an account to the country where it is held or domiciled (using ISO 3166-1 country codes)
+
+* **Direction:** Account->Country
+* **Properties:** None
+* **Description:** Links an account to the country where it is held or domiciled (using ISO 3166-1 country codes)
 
 ### :LOCATED_IN
-- Direction: Address->Country
-- Properties: None
-- Description: Links a physical address to the country where it is located (using ISO 3166-1 country codes)
+
+* **Direction:** Address->Country
+* **Properties:** None
+* **Description:** Links a physical address to the country where it is located (using ISO 3166-1 country codes)
 
 ### :LOCATED_IN
-- Direction: IP->Location
-- Properties:
+
+* **Direction:** IP->Location
+* **Properties:**
   - `createdAt` (DateTime): Timestamp when this IP geolocation was first determined
-- Description: Links an IP address to its approximate geographic location based on geolocation services
+* **Description:** Links an IP address to its approximate geographic location based on geolocation services
 
 ### :LOCATED_IN
-- Direction: Location->Country
-- Properties: None
-- Description: Links a geographic location to the country where it is situated (using ISO 3166-1 country codes)
+
+* **Direction:** Location->Country
+* **Properties:** None
+* **Description:** Links a geographic location to the country where it is situated (using ISO 3166-1 country codes)
 
 ### :PERFORMS
-- Direction: Account->Transaction
-- Properties: None
-- Description: Links the account that initiated or sent the transaction (the source or debtor account)
+
+* **Direction:** Account->Transaction
+* **Properties:** None
+* **Description:** Links the account that initiated or sent the transaction (the source or debtor account)
 
 ### :SESSION_USES_DEVICE
-- Direction: Session->Device
-- Properties: None
-- Description: Records which device was used to establish or conduct the session
+
+* **Direction:** Session->Device
+* **Properties:** None
+* **Description:** Records which device was used to establish or conduct the session
+
+### :SUBJECT_OF _(Proposed)_
+
+* **Direction:** Account->Case
+* **Properties:** None
+* **Description:** Links an account to a fraud investigation case where it is the subject of investigation
+
+### :SUBJECT_OF _(Proposed)_
+
+* **Direction:** Customer->Case
+* **Properties:** None
+* **Description:** Links a customer to a fraud investigation case where they are the subject of investigation
+
+### :TRIGGERED _(Proposed)_
+
+* **Direction:** Alert->Case
+* **Properties:** None
+* **Description:** Links an alert to the investigation case it triggered or contributed to
 
 ### :USED_BY
-- Direction: Device->Customer
-- Properties:
+
+* **Direction:** Device->Customer
+* **Properties:**
   - `lastUsed` (DateTime): When this device was last used by the customer
 
 ### :USES_IP
-- Direction: Session->IP
-- Properties: None
-- Description: Records which IP address was used to establish or conduct the session
+
+* **Direction:** Session->IP
+* **Properties:** None
+* **Description:** Records which IP address was used to establish or conduct the session
 
 ## 3. Constraints and Indexes
 
@@ -334,6 +449,13 @@ FOR (c:Country) REQUIRE c.code IS NODE KEY;
 CREATE CONSTRAINT address_composite IF NOT EXISTS
 FOR (a:Address) REQUIRE (a.addressLine1, a.postTown, a.postCode) IS NODE KEY;
 
+// Proposed: Fraud investigation constraints
+CREATE CONSTRAINT alert_id IF NOT EXISTS
+FOR (a:Alert) REQUIRE a.alertId IS NODE KEY;
+
+CREATE CONSTRAINT case_id IF NOT EXISTS
+FOR (c:Case) REQUIRE c.caseId IS NODE KEY;
+
 // Additional Indexes
 
 CREATE INDEX transaction_date_idx IF NOT EXISTS FOR (t:Transaction) ON (t.date);
@@ -362,17 +484,71 @@ While reviewing this data model, we identified an opportunity to improve locatio
 
 **Proposed Enhancement:**
 
-- Establish a direct `LOCATED_IN` relationship from `Session` nodes to `Location` nodes
-- Add a `source` property to the relationship indicating data origin (e.g., "IP", "Device_GPS", "WiFi_Network")
-- This would allow the system to prioritize more accurate location data while maintaining fallback options
+* Establish a direct `LOCATED_IN` relationship from `Session` nodes to `Location` nodes
+* Add a `source` property to the relationship indicating data origin (e.g., "IP", "Device_GPS", "WiFi_Network")
+* This would allow the system to prioritize more accurate location data while maintaining fallback options
 
 **Benefits:**
 
-- Enhanced fraud detection through precise geolocation
-- Flexible data source hierarchy (GPS > WiFi > IP)
-- Maintains backward compatibility with IP-based location data
+* Enhanced fraud detection through precise geolocation
+* Flexible data source hierarchy (GPS > WiFi > IP)
+* Maintains backward compatibility with IP-based location data
 
-## 5. Minimal Demo Code
+## 5. Fraud Investigation and Risk Management
+
+**Proposed Changes**
+
+This entire section describes proposed fraud investigation patterns that are pending finalization. These additions provide both demonstration-friendly and production-ready approaches to fraud case management.
+====
+
+This section describes two complementary approaches for managing fraud investigation workflows:
+
+### 5.1 Account Labels for Fraud Detection (Demo/Visualization)
+
+For visualization and demonstration purposes, the data model supports optional fraud-related labels on `Account` nodes:
+
+* `:Flagged` - Accounts flagged by automated fraud detection rules
+* `:UnderInvestigation` - Accounts currently under active fraud investigation
+* `:Confirmed` - Accounts confirmed as fraudulent or compromised
+
+These labels enable simple proximity queries and are useful for demonstrations, Bloom visualizations, and quick pattern analysis. For example, finding accounts within 3 hops of confirmed fraud:
+
+**Benefits:**
+
+* Simple, intuitive queries for demonstrations
+* Excellent for graph visualization in Neo4j Bloom
+* Label-based traversal filtering scales to Infinigraph
+* Clean separation of different fraud states
+
+**Use Cases:**
+
+* Demonstrations and proof-of-concept implementations
+* Quick fraud network analysis during investigations
+* Bloom-based fraud investigation dashboards
+
+### 5.2 Case Node Pattern (Production)
+
+For production implementations, the `:Case` node pattern provides a more robust and legally defensible approach to fraud investigation tracking. This pattern separates investigation metadata from customer and account data, addressing legal and compliance concerns.
+
+**Key Benefits:**
+
+* **Legal Protection**: Avoids accusatory labels directly on customer/account nodes, reducing legal liability if customers exercise their Right to Access
+* **Access Control**: Investigation cases can be isolated from customer data with separate permissions, especially important for internal fraud investigations
+* **Rich Metadata**: Cases can store detailed investigation information including investigators, financial stakes, outcomes, and timeline
+* **Anonymization Path**: Cases can be detached for anonymization while preserving reporting capabilities on historical fraud patterns
+* **Alert Tracking**: Links to `:Alert` nodes capture which specific rules triggered the investigation
+
+**Pattern Structure:**
+
+The pattern uses three main components:
+
+1. **Case Node** - Represents the investigation itself with status, outcome, investigators, and financial details
+2. **Alert Node** - Captures fraud detection rule triggers with rule names, severity levels, and timestamps
+3. **Relationships** - `:SUBJECT_OF` links accounts/customers to cases, `:TRIGGERED` links alerts to cases
+
+This separation allows investigators to build comprehensive case files while keeping customer data clean and legally compliant.
+
+## 6. Minimal Demo Code
 
 The following Cypher code creates a complete example dataset demonstrating all the main entities and relationships in the model. This code is suitable for testing and demonstration purposes.
 
@@ -626,4 +802,74 @@ CREATE (cpAddr)-[:LOCATED_IN]->(uk)
 CREATE (cp)-[:HAS_ACCOUNT {
     since: datetime("2024-02-01T00:00:00")
 }]->(a2)
+
+//--------------------
+// Create fraud investigation example
+//--------------------
+// Create a flagged account (demonstrates label-based fraud detection)
+CREATE (a3:Account:Internal:Flagged {
+    accountNumber: "ACC003",
+    accountType: "CURRENT",
+    openeDate: datetime("2023-06-15T00:00:00"),
+    closedDate: null,
+    suspendedDate: null
+})
+CREATE (a3)-[:IS_HOSTED]->(uk)
+
+// Create a second customer who owns the flagged account
+CREATE (c2:Customer {
+    customerId: "CUS002",
+    firstName: "Jane",
+    lastName: "Doe",
+    dateOfBirth: date("1985-05-15"),
+    placeOfBirth: "Birmingham",
+    countryOfBirth: "GB"
+})
+CREATE (c2)-[:HAS_ACCOUNT {role: "OWNER", since: datetime("2023-06-15T00:00:00")}]->(a3)
+
+// Create transaction from flagged account to high-risk jurisdiction
+CREATE (t2:Transaction {
+    transactionId: "TXN002",
+    amount: 15000.00,
+    currency: "GBP",
+    date: datetime("2024-03-10T14:30:00"),
+    message: "Large transfer",
+    type: "SWIFT"
+})
+CREATE (a3)-[:PERFORMS]->(t2)-[:BENEFITS_TO]->(a2)
+
+// Create alerts that triggered for this account
+CREATE (alert1:Alert {
+    alertId: "ALERT001",
+    ruleName: "Large Transaction to High Risk Jurisdiction",
+    ruleId: "RULE_FR_001",
+    severity: "HIGH",
+    triggeredAt: datetime("2024-03-10T14:35:00")
+})
+CREATE (alert2:Alert {
+    alertId: "ALERT002",
+    ruleName: "Unusual Transaction Pattern",
+    ruleId: "RULE_FR_015",
+    severity: "MEDIUM",
+    triggeredAt: datetime("2024-03-10T15:00:00")
+})
+
+// Create investigation case (demonstrates production case pattern)
+CREATE (case1:Case {
+    caseId: "CASE001",
+    status: "UNDER_INVESTIGATION",
+    outcome: null,
+    financialStakes: 15000.00,
+    investigatedBy: "FRAUD_TEAM_001",
+    createdAt: datetime("2024-03-10T16:00:00"),
+    closedAt: null
+})
+
+// Link alerts to the case
+CREATE (alert1)-[:TRIGGERED]->(case1)
+CREATE (alert2)-[:TRIGGERED]->(case1)
+
+// Link account and customer to the investigation case
+CREATE (a3)-[:SUBJECT_OF]->(case1)
+CREATE (c2)-[:SUBJECT_OF]->(case1)
 ```

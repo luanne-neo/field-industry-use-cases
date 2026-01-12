@@ -62,204 +62,208 @@ The objectives of this data model are to:
 
 ## 4. Node Labels and Properties
 
-> **Note:** Newly Added Nodes
+Newly Added Nodes
+====
 
 ### Authentication
 
-**Properties:**
+*Properties:*
 
-* `method` (String): Authentication method used (eg: "email", "phone_number")
-* `status` (String): Status of the authentication attempt (eg: "success", "failed")
-* `createdAt` (DateTime): Date and time when the authentication was established
+  - `method` (String): Authentication method used (eg: "email", "phone_number")
+  - `status` (String): Status of the authentication attempt (eg: "success", "failed")
+  - `createdAt` (DateTime): Date and time when the authentication was established
 
 ### ChangePhone
 
-**Properties:**
+*Properties:*
 
-* `createdAt` (DateTime): Date and time when the phone number was changed
+  - `createdAt` (DateTime): Date and time when the phone number was changed
 
 ### ChangeEmail
 
-**Properties:**
+*Properties:*
 
-* `createdAt` (DateTime): Date and time when the email address was changed
+  - `createdAt` (DateTime): Date and time when the email address was changed
 
 ### ChangeAddress
 
-**Properties:**
+*Properties:*
 
-* `createdAt` (DateTime): Date and time when the address was changed
+  - `createdAt` (DateTime): Date and time when the address was changed
 
 ### AddExternalAccount
 
-**Properties:**
+*Properties:*
 
-* `createdAt` (DateTime): Date and time when the external account was added
+  - `createdAt` (DateTime): Date and time when the external account was added
 
 ### Transfer
 
-**Properties:**
+*Properties:*
 
-* `createdAt` (DateTime): Date and time when the transfer was made
+  - `createdAt` (DateTime): Date and time when the transfer was made
 
-> **Note:** Existing Nodes
+Existing Nodes
+====
 
 ### Account
 
-**Labels:**
+*Labels:*
 
-* [Inherited from the standard Transaction & Account Data Model](data-models/transactions/transactions-base-model.md#account)
+  - Inherited from the standard Transaction & Account Data Model (https://neo4j.com/developer/industry-use-cases/data-models/transaction-graph/transaction/transaction-base-model/#_account)
 
-**Properties:**
+*Properties:*
 
-* [Inherited from the standard Transaction & Account Data Model](data-models/transactions/transactions-base-model.md#account)
+  - Inherited from the standard Transaction & Account Data Model (https://neo4j.com/developer/industry-use-cases/data-models/transaction-graph/transaction/transaction-base-model/#_account)
 
 ### Customer
 
-**Properties:**
+*Properties:*
 
-* [Inherited from the standard Transaction & Account Data Model](data-models/transactions/transactions-base-model.md#customer)
+  - Inherited from the standard Transaction & Account Data Model (https://neo4j.com/developer/industry-use-cases/data-models/transaction-graph/transaction/transaction-base-model/#_customer)
 
 ### Address
 
-**Properties:**
+*Properties:*
 
-* [Inherited from the standard Transaction & Account Data Model](data-models/transactions/transactions-base-model.md#address)
+  - Inherited from the standard Transaction & Account Data Model (https://neo4j.com/developer/industry-use-cases/data-models/transaction-graph/transaction/transaction-base-model/#_address)
 
 ### Email
 
-**Properties:**
+*Properties:*
 
-* [Inherited from the standard Transaction & Account Data Model](data-models/transactions/transactions-base-model.md#email)
+  - Inherited from the standard Transaction & Account Data Model (https://neo4j.com/developer/industry-use-cases/data-models/transaction-graph/transaction/transaction-base-model/#_email)
 
 ### Phone
 
-**Properties:**
+*Properties:*
 
-* [Inherited from the standard Transaction & Account Data Model](data-models/transactions/transactions-base-model.md#phone)
+  - Inherited from the standard Transaction & Account Data Model (https://neo4j.com/developer/industry-use-cases/data-models/transaction-graph/transaction/transaction-base-model/#_phone)
 
 ### Session
 
-**Properties:**
+*Properties:*
 
-* [Inherited from the standard Transaction & Account Data Model](data-models/transactions/transactions-base-model.md#session)
+  - Inherited from the standard Transaction & Account Data Model (https://neo4j.com/developer/industry-use-cases/data-models/transaction-graph/transaction/transaction-base-model/#_session)
 
 ### Transaction
 
-**Properties:**
+*Properties:*
 
-* [Inherited from the standard Transaction & Account Data Model](data-models/transactions/transactions-base-model.md#transaction)
+  - Inherited from the standard Transaction & Account Data Model (https://neo4j.com/developer/industry-use-cases/data-models/transaction-graph/transaction/transaction-base-model/#_transaction)
 
 ## 5. Relationship Types and Properties
 
-> **Note:** New Relationships
+New Relationships
+====
 
 ### :CONNECTS
 
 * **Direction:** Customer->Authentication
 * **Properties:**
-  * None
+  - None
 
 ### :NEXT
 * **Direction:** Event->Event
 * **Properties:**
-  * None
+  - None
 
 ### :OLD_PHONE
 * **Direction:** ChangePhone->Phone
 * **Properties:**
-  * None
+  - None
 
 ### :NEW_PHONE
 * **Direction:** ChangePhone->Phone
 * **Properties:**
-  * None
+  - None
 
 ### :OLD_EMAIL
 * **Direction:** ChangeEmail->Email
 * **Properties:**
-  * None
+  - None
 
 ### :NEW_EMAIL
 * **Direction:** ChangeEmail->Email
 * **Properties:**
-  * None
+  - None
 
 ### :OLD_ADDRESS
 * **Direction:** ChangeAddress->Address
 * **Properties:**
-  * None
+  - None
 
 ### :NEW_ADDRESS
 * **Direction:** ChangeAddress->Address
 * **Properties:**
-  * None
+  - None
 
 ### :HAS_AUTHENTICATION
 * **Direction:** Session->Authentication
 * **Properties:**
-  * None
+  - None
 
 ### :HAS_CHANGE_PHONE
 * **Direction:** Session->ChangePhone
 * **Properties:**
-  * None
+  - None
 
 ### :HAS_CHANGE_EMAIL
 * **Direction:** Session->ChangeEmail
 * **Properties:**
-  * None
+  - None
 
 ### :HAS_CHANGE_ADDRESS
 * **Direction:** Session->ChangeAddress
 * **Properties:**
-  * None
+  - None
 
 ### :HAS_ADD_EXTERNAL_ACCOUNT
 * **Direction:** Session->AddExternalAccount
 * **Properties:**
-  * None
+  - None
 
 ### :HAS_TRANSFER
 * **Direction:** Session->Transfer
 * **Properties:**
-  * None
+  - None
 
 ### :ADD_ACCOUNT
 * **Direction:** AddExternalAccount->Account
 * **Properties:**
-  * None
+  - None
 
 ### :HAS_TRANSACTION
 * **Direction:** Transfer->Transaction
 * **Properties:**
-  * None
+  - None
 
-> **Note:** Existing Relationships
+Existing Relationships
+====
 
 ### :HAS_ADDRESS
 * **Direction:** Customer->Address
-* [Properties inherited from base model](data-models/transactions/transactions-base-model.md#has_address)
+* Properties inherited from base model (https://neo4j.com/developer/industry-use-cases/data-models/transaction-graph/transaction/transaction-base-model/#_has_address)
 
 ### :HAS_EMAIL
 * **Direction:** Customer->Email
-* [Properties inherited from base model](data-models/transactions/transactions-base-model.md#has_address)
+* Properties inherited from base model (https://neo4j.com/developer/industry-use-cases/data-models/transaction-graph/transaction/transaction-base-model/#_has_address)
 
 ### :HAS_PHONE
 * **Direction:** Customer->Phone
-* [Properties inherited from base model](data-models/transactions/transactions-base-model.md#has_address)
+* Properties inherited from base model (https://neo4j.com/developer/industry-use-cases/data-models/transaction-graph/transaction/transaction-base-model/#_has_address)
 
 ### :HAS_ACCOUNT
 * **Direction:** Customer->Account
-* [Properties inherited from base model](data-models/transactions/transactions-base-model.md#has_address)
+* Properties inherited from base model (https://neo4j.com/developer/industry-use-cases/data-models/transaction-graph/transaction/transaction-base-model/#_has_address)
 
 ### :PERFORMS
 * **Direction:** Account->Transaction
-* [Properties inherited from base model](data-models/transactions/transactions-base-model.md#has_address)
+* Properties inherited from base model (https://neo4j.com/developer/industry-use-cases/data-models/transaction-graph/transaction/transaction-base-model/#_has_address)
 
 ### :BENEFITS_TO
 * **Direction:** Transaction->Account
-* [Properties inherited from base model](data-models/transactions/transactions-base-model.md#has_address)
+* Properties inherited from base model (https://neo4j.com/developer/industry-use-cases/data-models/transaction-graph/transaction/transaction-base-model/#_has_address)
 
 ## 6. Customer enhancements
 
@@ -299,7 +303,7 @@ The current model focuses on successful events but should capture failed attempt
 
 The following Cypher code extends the standard Transaction & Account Data Model with event-based fraud detection capabilities. This code demonstrates how a typical account takeover fraud unfolds through a chronological sequence of events.
 
-**Prerequisites:** Run the [Transaction & Account Data Model demo code](data-models/transactions/transactions-base-model.md#4-minimal-demo-code) first to create the base customer, accounts, and session data.
+**Prerequisites:** Run the Transaction & Account Data Model demo code (https://neo4j.com/developer/industry-use-cases/data-models/transaction-graph/transaction/transaction-base-model/#_4_minimal_demo_code) first to create the base customer, accounts, and session data.
 
 ```cypher
 //--------------------
