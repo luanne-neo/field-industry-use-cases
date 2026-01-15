@@ -1,0 +1,36 @@
+= Cybersecurity
+
+Modern security teams are drowning in "vulnerability fatigue." Traditional tools provide lists of thousands of CVEs with static CVSS scores, but they lack the context to tell which 1% actually pose an existential threat to the business. Neo4j's graph technology enables security teams to prioritize vulnerabilities based on their actual risk to the organization by mapping vulnerabilities to the organization's unique IT environment, business processes, and threat intelligence.
+
+What is typically siloed data, can be transformed into a connected data model that provides a holistic view of the organization's attack surface. This *Cybersecurity Knowledge Graph* allows security teams to perform advanced analytics, such as attack path analysis, to identify the most critical vulnerabilities that need immediate attention.
+
+There are several cybersecurity pillars, these include but are not limited to *Vulnerability Prioritization & Exposure Management*, *Attack Path Analysis*, and *Software Supply Chain Security*.
+
+== Vulnerability Prioritization & Exposure Management (VPEM)
+
+*The Challenge*: A "Critical" (9.8) vulnerability on an isolated test server is often less dangerous than a "Medium" (5.0) vulnerability on an internet-facing production database. *The Solution*: Contextualize vulnerabilities by linking them to the assets they inhabit and the business units they support.
+
+* xref:cybersecurity/vulnerability-prioritization-exposure-management.adoc[]
+
+* *Reachability Analysis*: Is the vulnerable service exposed to the internet? Can it be reached from other high-risk assets (e.g., VPN, email server)?
+* *Business Impact*: Does this asset have access to "Crown Jewel" data (PII, Financials, S3 buckets)?
+* *Risk Scoring*: Calculate a dynamic score based on Technical Severity + Reachability + Business Impact.
+
+== Attack Path Analysis
+
+*The Challenge*: Attackers don't think in lists; they think in graphs. They land on a low-value foothold and move laterally to reach their target. *The Solution*: Model the "Multi-Hop" paths an attacker would take.
+
+* xref:cybersecurity/attack-path-analysis.adoc[]
+
+* *Lateral Movement*: Map `CAN_REACH` relationships between network segments.
+* *Identity Chokepoints*: Identify IAM roles or policies that act as "keys to the kingdom" if compromised.
+* *Blast Radius*: Instantly visualize everything an attacker can touch once they land on a specific compute instance.
+
+== Software Supply Chain Security
+
+*The Challenge*: Organizations don't know what's inside their software. A vulnerability in a deep transitive dependency (like Log4j) can stay hidden for years. *The Solution*: Ingest link:https://github.com/CycloneDX[CycloneDX]/link:https://spdx.dev/[SPDX] data to map the full dependency tree.
+
+* xref:cybersecurity/software-supply-chain-security.adoc[]
+
+* *Visibility*: Track every library, version, and license across the entire application portfolio.
+* *Zero-Day Readiness*: When a new CVE is announced, identify every affected application in seconds, not weeks.

@@ -30,6 +30,11 @@
 ** xref:manufacturing/production-planning-and-optimization/index.adoc[]
 *** xref:manufacturing/production-planning-and-optimization/process-monitoring-and-cpa.adoc[Process Monitoring and CPA]
 
+* xref:cybersecurity/index.adoc[]
+** xref:cybersecurity/vulnerability-prioritization-exposure-management.adoc[Vulnerability Prioritization & Exposure Management]
+** xref:cybersecurity/attack-path-analysis.adoc[Attack Path Analysis]
+** xref:cybersecurity/software-supply-chain-security.adoc[Software Supply Chain Security]
+
 * xref:agnostic/index.adoc[]
 ** xref:agnostic/entity-resolution.adoc[Entity Resolution]
 ** xref:agnostic/it-service-graph/it-service-graph.adoc[]
