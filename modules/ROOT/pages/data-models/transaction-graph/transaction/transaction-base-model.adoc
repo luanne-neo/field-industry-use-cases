@@ -7,9 +7,18 @@ This document defines a standardised Neo4j data model for banking transactions a
 
 *LLM Version of Data Model:*
 
-link:{attachmentsdir}/llm-transaction-base-model.txt[RAW Text File,window=_blank]
+link:{attachmentsdir}/transaction-base-model.txt[RAW Text File,window=_blank]
 
 == 1. Node Labels and Properties
+
+[IMPORTANT]
+.Proposed Changes
+====
+The following fraud investigation additions are proposed changes pending finalization:
+
+* **Account labels**: `Flagged`, `UnderInvestigation`, `Confirmed`
+* **New nodes**: `Alert`, `Case`
+====
 
 === Account
 
@@ -19,14 +28,27 @@ link:{attachmentsdir}/llm-transaction-base-model.txt[RAW Text File,window=_blank
 ** `Internal`: Label for accounts held within this bank (our customers' accounts). Essential for identifying fund flows leaving the organisation (Internal→External transactions) or incoming liquidity (External→Internal transactions)
 ** `External`: Label for accounts held at other financial institutions. Critical for monitoring cross-institutional transfers and identifying potential money laundering patterns
 ** `HighRiskJurisdiction`: Label for accounts in countries with elevated regulatory or compliance risks
+** `Flagged`: _(Proposed)_ Optional label for accounts flagged by fraud detection rules (useful for visualization and demo queries)
+** `UnderInvestigation`: _(Proposed)_ Optional label for accounts currently under fraud investigation
+** `Confirmed`: _(Proposed)_ Optional label for accounts confirmed as fraudulent or compromised
 
 *Properties:*
 
 ** `accountNumber` (String): Unique account identifier (e.g., sort code and account number, IBAN)
 ** `accountType` (String): Optional: Type of account (e.g., "CURRENT", "SAVINGS", "BUSINESS", "LOAN")
-** `openDate` (DateTime): Optional: Date and time when the account was first opened
+** `openedDate` (DateTime): Optional: Date and time when the account was first opened
 ** `closedDate` (DateTime): Optional: Date and time when the account was permanently closed (null if still active)
 ** `suspendedDate` (DateTime): Optional: Date and time when the account was temporarily suspended (null if not suspended)
+
+=== Alert _(Proposed)_
+
+*Properties:*
+
+** `alertId` (String): Unique identifier for the alert
+** `ruleName` (String): Human-readable name of the fraud detection rule that triggered this alert
+** `ruleId` (String): Optional: System identifier for the rule (useful for tracking rule versions)
+** `severity` (String): Optional: Alert severity level (e.g., "LOW", "MEDIUM", "HIGH", "CRITICAL")
+** `triggeredAt` (DateTime): Timestamp when the alert was triggered
 
 === Address
 
@@ -40,6 +62,18 @@ link:{attachmentsdir}/llm-transaction-base-model.txt[RAW Text File,window=_blank
 ** `latitude` (Float): Optional: Geographic latitude coordinate for precise location mapping
 ** `longitude` (Float): Optional: Geographic longitude coordinate for precise location mapping
 ** `createdAt` (DateTime): Timestamp when this address was first recorded in the system
+
+=== Case _(Proposed)_
+
+*Properties:*
+
+** `caseId` (String): Unique identifier for the investigation case
+** `status` (String): Current status of the investigation (e.g., "OPEN", "UNDER_INVESTIGATION", "CLOSED", "ESCALATED")
+** `outcome` (String): Optional: Result of the investigation (e.g., "PROVEN_FRAUD", "FRAUD_UNPROVABLE", "NOT_FRAUD", "EXCESSIVE_CLAIM")
+** `financialStakes` (Float): Optional: Monetary value at risk or involved in the case
+** `investigatedBy` (String): Optional: User ID or name of the investigator assigned to this case
+** `createdAt` (DateTime): Timestamp when the case was opened
+** `closedAt` (DateTime): Optional: Timestamp when the case was closed (null if still open)
 
 === Counterparty
 
@@ -185,6 +219,15 @@ link:{attachmentsdir}/llm-transaction-base-model.txt[RAW Text File,window=_blank
 
 == 2. Relationship Types and Properties
 
+[IMPORTANT]
+.Proposed Changes
+====
+The following fraud investigation relationships are proposed changes pending finalization:
+
+* **`:SUBJECT_OF`** (Account->Case, Customer->Case)
+* **`:TRIGGERED`** (Alert->Case)
+====
+
 === :BENEFITS_TO
 
 * *Direction:* Transaction->Account
@@ -313,6 +356,24 @@ link:{attachmentsdir}/llm-transaction-base-model.txt[RAW Text File,window=_blank
 * *Properties:* None
 * *Description:* Records which device was used to establish or conduct the session
 
+=== :SUBJECT_OF _(Proposed)_
+
+* *Direction:* Account->Case
+* *Properties:* None
+* *Description:* Links an account to a fraud investigation case where it is the subject of investigation
+
+=== :SUBJECT_OF _(Proposed)_
+
+* *Direction:* Customer->Case
+* *Properties:* None
+* *Description:* Links a customer to a fraud investigation case where they are the subject of investigation
+
+=== :TRIGGERED _(Proposed)_
+
+* *Direction:* Alert->Case
+* *Properties:* None
+* *Description:* Links an alert to the investigation case it triggered or contributed to
+
 === :USED_BY
 
 * *Direction:* Device->Customer
@@ -378,6 +439,13 @@ FOR (c:Country) REQUIRE c.code IS NODE KEY;
 CREATE CONSTRAINT address_composite IF NOT EXISTS
 FOR (a:Address) REQUIRE (a.addressLine1, a.postTown, a.postCode) IS NODE KEY;
 
+// Proposed: Fraud investigation constraints
+CREATE CONSTRAINT alert_id IF NOT EXISTS
+FOR (a:Alert) REQUIRE a.alertId IS NODE KEY;
+
+CREATE CONSTRAINT case_id IF NOT EXISTS
+FOR (c:Case) REQUIRE c.caseId IS NODE KEY;
+
 // Additional Indexes
 
 CREATE INDEX transaction_date_idx IF NOT EXISTS FOR (t:Transaction) ON (t.date);
@@ -416,7 +484,62 @@ While reviewing this data model, we identified an opportunity to improve locatio
 * Flexible data source hierarchy (GPS > WiFi > IP)
 * Maintains backward compatibility with IP-based location data
 
-== 5. Minimal Demo Code
+== 5. Fraud Investigation and Risk Management
+
+[IMPORTANT]
+.Proposed Changes
+====
+This entire section describes proposed fraud investigation patterns that are pending finalization. These additions provide both demonstration-friendly and production-ready approaches to fraud case management.
+====
+
+This section describes two complementary approaches for managing fraud investigation workflows:
+
+=== 5.1 Account Labels for Fraud Detection (Demo/Visualization)
+
+For visualization and demonstration purposes, the data model supports optional fraud-related labels on `Account` nodes:
+
+* `:Flagged` - Accounts flagged by automated fraud detection rules
+* `:UnderInvestigation` - Accounts currently under active fraud investigation
+* `:Confirmed` - Accounts confirmed as fraudulent or compromised
+
+These labels enable simple proximity queries and are useful for demonstrations, Bloom visualizations, and quick pattern analysis. For example, finding accounts within 3 hops of confirmed fraud:
+
+**Benefits:**
+
+* Simple, intuitive queries for demonstrations
+* Excellent for graph visualization in Neo4j Bloom
+* Label-based traversal filtering scales to Infinigraph
+* Clean separation of different fraud states
+
+**Use Cases:**
+
+* Demonstrations and proof-of-concept implementations
+* Quick fraud network analysis during investigations
+* Bloom-based fraud investigation dashboards
+
+=== 5.2 Case Node Pattern (Production)
+
+For production implementations, the `:Case` node pattern provides a more robust and legally defensible approach to fraud investigation tracking. This pattern separates investigation metadata from customer and account data, addressing legal and compliance concerns.
+
+**Key Benefits:**
+
+* **Legal Protection**: Avoids accusatory labels directly on customer/account nodes, reducing legal liability if customers exercise their Right to Access
+* **Access Control**: Investigation cases can be isolated from customer data with separate permissions, especially important for internal fraud investigations
+* **Rich Metadata**: Cases can store detailed investigation information including investigators, financial stakes, outcomes, and timeline
+* **Anonymization Path**: Cases can be detached for anonymization while preserving reporting capabilities on historical fraud patterns
+* **Alert Tracking**: Links to `:Alert` nodes capture which specific rules triggered the investigation
+
+**Pattern Structure:**
+
+The pattern uses three main components:
+
+1. **Case Node** - Represents the investigation itself with status, outcome, investigators, and financial details
+2. **Alert Node** - Captures fraud detection rule triggers with rule names, severity levels, and timestamps
+3. **Relationships** - `:SUBJECT_OF` links accounts/customers to cases, `:TRIGGERED` links alerts to cases
+
+This separation allows investigators to build comprehensive case files while keeping customer data clean and legally compliant.
+
+== 6. Minimal Demo Code
 
 The following Cypher code creates a complete example dataset demonstrating all the main entities and relationships in the model. This code is suitable for testing and demonstration purposes.
 
@@ -562,14 +685,14 @@ CREATE (s)-[:SESSION_USES_DEVICE]->(d)
 CREATE (a:Account:Internal {
     accountNumber: "ACC001", 
     accountType: "CURRENT", 
-    openDate: datetime("2024-01-01T00:00:00"),
+    openedDate: datetime("2024-01-01T00:00:00"),
     closedDate: null,
     suspendedDate: null
 })
 CREATE (a2:Account:External:HighRiskJurisdiction {
     accountNumber: "ACC002", 
     accountType: null, 
-    openDate: null,
+    openedDate: null,
     closedDate: null,
     suspendedDate: null
 })
@@ -671,4 +794,74 @@ CREATE (cpAddr)-[:LOCATED_IN]->(uk)
 CREATE (cp)-[:HAS_ACCOUNT {
     since: datetime("2024-02-01T00:00:00")
 }]->(a2)
+
+//--------------------
+// Create fraud investigation example
+//--------------------
+// Create a flagged account (demonstrates label-based fraud detection)
+CREATE (a3:Account:Internal:Flagged {
+    accountNumber: "ACC003",
+    accountType: "CURRENT",
+    openedDate: datetime("2023-06-15T00:00:00"),
+    closedDate: null,
+    suspendedDate: null
+})
+CREATE (a3)-[:IS_HOSTED]->(uk)
+
+// Create a second customer who owns the flagged account
+CREATE (c2:Customer {
+    customerId: "CUS002",
+    firstName: "Jane",
+    lastName: "Doe",
+    dateOfBirth: date("1985-05-15"),
+    placeOfBirth: "Birmingham",
+    countryOfBirth: "GB"
+})
+CREATE (c2)-[:HAS_ACCOUNT {role: "OWNER", since: datetime("2023-06-15T00:00:00")}]->(a3)
+
+// Create transaction from flagged account to high-risk jurisdiction
+CREATE (t2:Transaction {
+    transactionId: "TXN002",
+    amount: 15000.00,
+    currency: "GBP",
+    date: datetime("2024-03-10T14:30:00"),
+    message: "Large transfer",
+    type: "SWIFT"
+})
+CREATE (a3)-[:PERFORMS]->(t2)-[:BENEFITS_TO]->(a2)
+
+// Create alerts that triggered for this account
+CREATE (alert1:Alert {
+    alertId: "ALERT001",
+    ruleName: "Large Transaction to High Risk Jurisdiction",
+    ruleId: "RULE_FR_001",
+    severity: "HIGH",
+    triggeredAt: datetime("2024-03-10T14:35:00")
+})
+CREATE (alert2:Alert {
+    alertId: "ALERT002",
+    ruleName: "Unusual Transaction Pattern",
+    ruleId: "RULE_FR_015",
+    severity: "MEDIUM",
+    triggeredAt: datetime("2024-03-10T15:00:00")
+})
+
+// Create investigation case (demonstrates production case pattern)
+CREATE (case1:Case {
+    caseId: "CASE001",
+    status: "UNDER_INVESTIGATION",
+    outcome: null,
+    financialStakes: 15000.00,
+    investigatedBy: "FRAUD_TEAM_001",
+    createdAt: datetime("2024-03-10T16:00:00"),
+    closedAt: null
+})
+
+// Link alerts to the case
+CREATE (alert1)-[:TRIGGERED]->(case1)
+CREATE (alert2)-[:TRIGGERED]->(case1)
+
+// Link account and customer to the investigation case
+CREATE (a3)-[:SUBJECT_OF]->(case1)
+CREATE (c2)-[:SUBJECT_OF]->(case1)
 ----

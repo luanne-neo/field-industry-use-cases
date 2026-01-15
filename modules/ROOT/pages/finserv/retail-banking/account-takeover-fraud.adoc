@@ -25,6 +25,9 @@ Account Takeover Fraud (ATO) represents a sophisticated form of identity theft w
 * **Credential stuffing:** Automated attacks using stolen username/password combinations
 * **Device spoofing:** Fraudsters using advanced techniques to bypass device fingerprinting
 * **Authentication bypass:** Sophisticated methods to circumvent multi-factor authentication
+* **Rapid sequential changes:** Attackers quickly modifying contact details and adding external accounts
+* **Event velocity detection:** Distinguishing between legitimate urgent changes and automated fraud
+* **Forensic complexity:** Tracking what changed during an attack for investigation and customer restoration
 
 == 3. Solution
 
@@ -39,6 +42,7 @@ Graph databases provide a powerful approach to detecting and preventing Account 
    * Suspicious changes in transaction patterns
    * Unexpected account setting modifications
    * Abnormal navigation patterns within applications
+   * Rapid sequential account changes indicating automated attacks
 
 3. **Identity Verification Networks**: Create comprehensive identity graphs that connect:
    * User accounts and associated email addresses
@@ -58,8 +62,23 @@ Graph databases provide a powerful approach to detecting and preventing Account 
    * Tracing the spread of credential stuffing attacks
    * Mapping relationships between known fraudulent entities
 
+6. **Event Sequence Tracking**: Track chronological event chains to detect account takeover patterns:
+   * Monitor velocity of account modifications (events per minute)
+   * Identify complete attack lifecycles from access to fund transfer
+   * Preserve forensic trails of old vs new values for investigations
+   * Detect automated attack patterns through consistent time intervals
+
 == 4. Modelling
-This section provides examples of Cypher queries to demonstrate how to structure your data for detecting Account Takeover Fraud. The example graph will include nodes for users, devices, sessions, locations, and authentication events, with relationships showing how these entities interact during normal and suspicious account access patterns.
+This section demonstrates how to structure your data for detecting Account Takeover Fraud using Neo4j. The example includes a complete, standalone dataset showcasing multiple fraud patterns.
+
+The model includes:
+
+* **Base entities:** Customer, Device, Session, IP, Location nodes for tracking access patterns
+* **Event nodes:** Authentication, ChangePhone, ChangeEmail, ChangeAddress, AddExternalAccount, Transfer
+* **Chronological chains:** `:NEXT` relationships linking events in temporal sequence
+* **Forensic tracking:** Old vs new value preservation for contact detail changes
+
+This approach demonstrates event-based fraud detection patterns. For more detailed specification and extensible models, see xref:data-models/transaction-graph/fraud-event-sequence/fraud-event-sequence-model.adoc[Fraud Event Sequence Data Model].
 
 === 4.1. Data Model
 
@@ -101,10 +120,74 @@ This section provides examples of Cypher queries to demonstrate how to structure
 * `status`: Session status (success, failed, suspicious)
 * `createdAt`: Timestamp when session was initiated
 
-
 **`Account` Node:**
 
 * `accountNumber`: Unique account number
+
+**`Email` Node:**
+
+* `address`: Email address
+* `domain`: Email domain
+* `createdAt`: Timestamp when email was first recorded
+
+**`Phone` Node:**
+
+* `number`: Phone number
+* `countryCode`: International dialing code
+* `createdAt`: Timestamp when phone was first recorded
+
+**`Address` Node:**
+
+* `addressLine1`: Primary address line
+* `addressLine2`: Secondary address details (optional)
+* `postTown`: Post town or city
+* `postCode`: Postal code
+* `region`: County, state, or administrative region (optional)
+* `latitude`: Geographic latitude (optional)
+* `longitude`: Geographic longitude (optional)
+* `createdAt`: Timestamp when address was first recorded
+
+**`Transaction` Node:**
+
+* `transactionId`: Unique transaction identifier
+* `amount`: Transaction amount
+* `currency`: Three-letter currency code (e.g., "GBP", "USD")
+* `date`: Timestamp when transaction was processed
+* `message`: Payment reference or description (optional)
+* `type`: Payment method or transaction type (optional)
+
+**`Country` Node:**
+
+* `code`: Two-letter ISO country code
+* `name`: Country name
+
+**Event Nodes (for tracking account takeover sequences):**
+
+**`Authentication` Node:**
+
+* `method`: Authentication method used (e.g., "email", "phone_number")
+* `status`: Status of authentication attempt (e.g., "success", "failed")
+* `createdAt`: Timestamp when authentication was established
+
+**`ChangePhone` Node:**
+
+* `createdAt`: Timestamp when phone number was changed
+
+**`ChangeEmail` Node:**
+
+* `createdAt`: Timestamp when email address was changed
+
+**`ChangeAddress` Node:**
+
+* `createdAt`: Timestamp when address was changed
+
+**`AddExternalAccount` Node:**
+
+* `createdAt`: Timestamp when external account was added
+
+**`Transfer` Node:**
+
+* `createdAt`: Timestamp when transfer was made
 
 **Relationships:**
 
@@ -112,40 +195,65 @@ This section provides examples of Cypher queries to demonstrate how to structure
 * `USES_IP`: Session uses IP address
 * `SESSION_USES_DEVICE`: Session uses device
 * `HAS_ACCOUNT`: Customer has account
+* `HAS_EMAIL`: Customer has email
+* `HAS_PHONE`: Customer has phone
+* `HAS_ADDRESS`: Customer has address
 * `IS_ALLOCATED_TO`: IP is allocated to ISP
-* `LOCATED_IN`: IP/Location located in country
+* `LOCATED_IN`: IP/Location/Address located in country
+* `IS_HOSTED`: Account is hosted in country
+* `PERFORMS`: Account performs transaction
+* `BENEFITS_TO`: Transaction benefits to account
+* `HAS_SESSION`: Customer has session
+
+**Event-based Relationships:**
+
+* `CONNECTS`: Customer connects via authentication
+* `NEXT`: Links events chronologically (Event->Event)
+* `HAS_AUTHENTICATION`: Session has authentication event
+* `HAS_CHANGE_PHONE`: Session has phone change event
+* `HAS_CHANGE_EMAIL`: Session has email change event
+* `HAS_CHANGE_ADDRESS`: Session has address change event
+* `HAS_ADD_EXTERNAL_ACCOUNT`: Session has external account addition event
+* `HAS_TRANSFER`: Session has transfer event
+* `OLD_PHONE`: Links to previous phone number (ChangePhone->Phone)
+* `NEW_PHONE`: Links to new phone number (ChangePhone->Phone)
+* `OLD_EMAIL`: Links to previous email (ChangeEmail->Email)
+* `NEW_EMAIL`: Links to new email (ChangeEmail->Email)
+* `OLD_ADDRESS`: Links to previous address (ChangeAddress->Address)
+* `NEW_ADDRESS`: Links to new address (ChangeAddress->Address)
+* `ADD_ACCOUNT`: Links to added account (AddExternalAccount->Account)
+* `HAS_TRANSACTION`: Links to transaction (Transfer->Transaction)
 
 === 4.2. Demo Data
 
-The following Cypher statement will create an example graph demonstrating typical account access patterns:
+The following Cypher code creates a complete example demonstrating multiple account takeover fraud patterns:
 
-```
-//
-// Create Customer nodes (minimal info for fraud detection)
-//
+```cypher
+//--------------------
+// Create Countries
+//--------------------
+CREATE (uk:Country {code: "GB", name: "United Kingdom"})
+CREATE (us:Country {code: "US", name: "United States"})
+CREATE (cn:Country {code: "CN", name: "China"})
+CREATE (ng:Country {code: "NG", name: "Nigeria"})
+
+//--------------------
+// Create Customers
+//--------------------
 CREATE (c1:Customer {customerId: "CUS001"})
 CREATE (c2:Customer {customerId: "CUS002"})
 CREATE (c3:Customer {customerId: "CUS003"})
 
-//
-// Create Device nodes
-//
+//--------------------
+// Create Devices
+//--------------------
 CREATE (d1:Device {deviceId: "DEV001", deviceType: "desktop", userAgent: "Mozilla/5.0 Chrome/91.0", createdAt: datetime("2024-03-01T09:00:00")})
 CREATE (d2:Device {deviceId: "DEV002", deviceType: "mobile", userAgent: "Mozilla/5.0 Mobile Safari/537.36", createdAt: datetime("2024-03-01T09:30:00")})
 CREATE (d3:Device {deviceId: "SUSPICIOUS001", deviceType: "desktop", userAgent: "Mozilla/5.0 Firefox/89.0", createdAt: datetime("2024-03-01T10:00:00")})
 
-//
-// Create IP nodes
-//
-CREATE (ip1:IP {ipAddress: "192.168.1.1", createdAt: datetime("2024-03-01T09:00:00")})
-CREATE (ip2:IP {ipAddress: "10.0.0.1", createdAt: datetime("2024-03-01T10:00:00")})
-CREATE (ip3:IP {ipAddress: "203.0.113.1", createdAt: datetime("2024-03-01T10:05:00")})
-CREATE (ip4:IP {ipAddress: "198.51.100.1", createdAt: datetime("2024-03-01T11:00:00")})
-CREATE (ip5:IP {ipAddress: "172.16.0.1", createdAt: datetime("2024-03-01T11:05:00")})
-
-//
-// Create ISP nodes
-//
+//--------------------
+// Create ISPs and Locations
+//--------------------
 CREATE (isp1:ISP {name: "BT", createdAt: datetime("2024-01-01T00:00:00")})
 CREATE (isp2:ISP {name: "Orange", createdAt: datetime("2024-01-01T00:00:00")})
 CREATE (isp3:ISP {name: "Verizon", createdAt: datetime("2024-01-01T00:00:00")})
@@ -154,78 +262,211 @@ CREATE (isp4:ISP {name: "China Telecom", createdAt: datetime("2024-01-01T00:00:0
 //
 // Create Location nodes
 //
-CREATE (l1:Location {city: "London", country: "UK", latitude: 51.5074, longitude: -0.1278, createdAt: datetime("2024-01-01T00:00:00")})
-CREATE (l2:Location {city: "Paris", country: "France", latitude: 48.8566, longitude: 2.3522, createdAt: datetime("2024-01-01T00:00:00")})
-CREATE (l3:Location {city: "Beijing", country: "China", latitude: 39.9042, longitude: 116.4074, createdAt: datetime("2024-01-01T00:00:00")})
-CREATE (l4:Location {city: "Lagos", country: "Nigeria", latitude: 6.5244, longitude: 3.3792, createdAt: datetime("2024-01-01T00:00:00")})
-CREATE (l5:Location {city: "New York", country: "USA", latitude: 40.7128, longitude: -74.0060, createdAt: datetime("2024-01-01T00:00:00")})
+CREATE (l1:Location {city: "London", postCode: "XX30 1XX", country: "UK", latitude: 51.5074, longitude: -0.1278, createdAt: datetime("2024-01-01T00:00:00")})
+CREATE (l2:Location {city: "Paris", postCode: "75001", country: "France", latitude: 48.8566, longitude: 2.3522, createdAt: datetime("2024-01-01T00:00:00")})
+CREATE (l3:Location {city: "Beijing", postCode: "100000", country: "China", latitude: 39.9042, longitude: 116.4074, createdAt: datetime("2024-01-01T00:00:00")})
+CREATE (l4:Location {city: "Lagos", postCode: "100001", country: "Nigeria", latitude: 6.5244, longitude: 3.3792, createdAt: datetime("2024-01-01T00:00:00")})
+CREATE (l5:Location {city: "New York", postCode: "10001", country: "USA", latitude: 40.7128, longitude: -74.0060, createdAt: datetime("2024-01-01T00:00:00")})
 
-//
-// Create Session nodes (incorporating event data)
-//
-CREATE (s1:Session {sessionId: "SESS001", status: "success", createdAt: datetime("2024-03-01T10:00:00")})
+//--------------------
+// Create IP Addresses
+//--------------------
+CREATE (ip1:IP {ipAddress: "192.168.1.1", createdAt: datetime("2024-03-01T09:00:00")})
+CREATE (ip2:IP {ipAddress: "10.0.0.1", createdAt: datetime("2024-03-01T10:00:00")})
+CREATE (ip3:IP {ipAddress: "203.0.113.1", createdAt: datetime("2024-03-01T10:05:00")})
+CREATE (ip4:IP {ipAddress: "198.51.100.1", createdAt: datetime("2024-03-01T11:00:00")})
+CREATE (ip5:IP {ipAddress: "172.16.0.1", createdAt: datetime("2024-03-01T11:05:00")})
+
+//--------------------
+// Create Contact Information (Original)
+//--------------------
+CREATE (originalPhone:Phone {number: "447971020304", countryCode: "+44", createdAt: datetime("2024-01-01T00:00:00")})
+CREATE (originalEmail:Email {address: "john@example.com", domain: "example.com", emailType: "personal", createdAt: datetime("2024-01-01T00:00:00")})
+CREATE (originalAddr:Address {
+    addressLine1: "123 High Street",
+    addressLine2: "Flat 4B",
+    postTown: "London",
+    postCode: "SW1A 1AA",
+    region: "Greater London",
+    latitude: 51.5074,
+    longitude: -0.1278,
+    createdAt: datetime("2024-01-01T00:00:00")
+})
+
+//--------------------
+// Create Contact Information (Changed by Attacker)
+//--------------------
+CREATE (newPhone:Phone {number: "447800123456", countryCode: "+44", createdAt: datetime("2024-03-01T14:35:00")})
+CREATE (newEmail:Email {address: "attacker.new@protonmail.com", domain: "protonmail.com", emailType: "personal", createdAt: datetime("2024-03-01T14:40:00")})
+CREATE (newAddr:Address {
+    addressLine1: "999 Fraud Street",
+    addressLine2: "Unit 13",
+    postTown: "London",
+    postCode: "E1 6XX",
+    region: "Greater London",
+    latitude: 51.5171,
+    longitude: -0.0574,
+    createdAt: datetime("2024-03-01T14:40:00")
+})
+
+//--------------------
+// Create Accounts
+//--------------------
+CREATE (a1:Account:Internal {accountNumber: "ACC001", accountType: "CURRENT", openedDate: datetime("2024-01-01T00:00:00"), closedDate: null, suspendedDate: null})
+CREATE (a2:Account:Internal {accountNumber: "ACC002", accountType: "CURRENT", openedDate: datetime("2024-01-01T00:00:00"), closedDate: null, suspendedDate: null})
+CREATE (a3:Account:Internal {accountNumber: "ACC003", accountType: "CURRENT", openedDate: datetime("2024-01-01T00:00:00"), closedDate: null, suspendedDate: null})
+CREATE (fraudAccount:Account:External:HighRiskJurisdiction {accountNumber: "FRAUD123456789", accountType: null, openedDate: null, closedDate: null, suspendedDate: null})
+
+//--------------------
+// Create Sessions (Normal, Failed, and ATO Session)
+//--------------------
+CREATE (s1:Session {sessionId: "SESS001", status: "success", createdAt: datetime("2024-03-01T14:30:00")})
 CREATE (s2:Session {sessionId: "SESS002", status: "success", createdAt: datetime("2024-03-01T10:05:00")})
 CREATE (s3:Session {sessionId: "SESS003", status: "failed", createdAt: datetime("2024-03-01T11:00:00")})
 CREATE (s4:Session {sessionId: "SESS004", status: "failed", createdAt: datetime("2024-03-01T11:05:00")})
 CREATE (s5:Session {sessionId: "SESS005", status: "failed", createdAt: datetime("2024-03-01T11:10:00")})
 
+//--------------------
+// Create Fraud Event Sequence (for Customer 1 - ATO Victim)
+//--------------------
+CREATE (e1:Authentication {method: "email", status: "success", createdAt: datetime("2024-03-01T14:30:00")})
+CREATE (e2:ChangePhone {createdAt: datetime("2024-03-01T14:35:00")})
+CREATE (e3:ChangeEmail {createdAt: datetime("2024-03-01T14:37:00")})
+CREATE (e4:ChangeAddress {createdAt: datetime("2024-03-01T14:40:00")})
+CREATE (e5:AddExternalAccount {createdAt: datetime("2024-03-01T14:50:00")})
+CREATE (e6:Transfer {createdAt: datetime("2024-03-01T14:55:00")})
 
-//
-// Create Account nodes
-//
-CREATE (a1:Account {accountNumber: "ACC001"})
-CREATE (a2:Account {accountNumber: "ACC002"})
-CREATE (a3:Account {accountNumber: "ACC003"})
+//--------------------
+// Create Transaction (Fraudulent Transfer)
+//--------------------
+CREATE (fraudTransaction:Transaction {
+    transactionId: "TXN_FRAUD_001",
+    amount: 15000.00,
+    currency: "GBP",
+    date: datetime("2024-03-01T14:55:00"),
+    message: "Emergency transfer",
+    type: "SWIFT"
+})
 
-//
-// Create Relationships
-//
+//--------------------
+// Create Relationships: Countries
+//--------------------
+CREATE (l1)-[:LOCATED_IN]->(uk)
+CREATE (l2)-[:LOCATED_IN]->(uk)
+CREATE (l3)-[:LOCATED_IN]->(cn)
+CREATE (l4)-[:LOCATED_IN]->(ng)
+CREATE (l5)-[:LOCATED_IN]->(us)
+CREATE (originalAddr)-[:LOCATED_IN]->(uk)
+CREATE (newAddr)-[:LOCATED_IN]->(uk)
+CREATE (a1)-[:IS_HOSTED]->(uk)
+CREATE (a2)-[:IS_HOSTED]->(uk)
+CREATE (a3)-[:IS_HOSTED]->(uk)
+CREATE (fraudAccount)-[:IS_HOSTED]->(us)
 
-// Pattern 1: Single device logging into multiple accounts (credential stuffing)
+//--------------------
+// Create Relationships: Customer Identity
+//--------------------
+CREATE (c1)-[:HAS_PHONE {since: datetime("2024-03-01T14:35:00")}]->(newPhone)
+CREATE (c1)-[:HAS_EMAIL {since: datetime("2024-03-01T14:37:00")}]->(newEmail)
+CREATE (c1)-[:HAS_ADDRESS {addedAt: datetime("2024-03-01T14:40:00"), lastChangedAt: datetime("2024-03-01T14:40:00"), isCurrent: true}]->(newAddr)
+CREATE (c1)-[:HAS_ACCOUNT {role: "owner", since: datetime("2024-01-01T00:00:00")}]->(a1)
+
+CREATE (c2)-[:HAS_ACCOUNT {role: "owner", since: datetime("2024-01-01T00:00:00")}]->(a2)
+CREATE (c3)-[:HAS_ACCOUNT {role: "owner", since: datetime("2024-01-01T00:00:00")}]->(a3)
+
+//--------------------
+// Create Relationships: Devices
+//--------------------
+CREATE (d1)-[:USED_BY {lastUsed: datetime("2024-03-01T09:00:00")}]->(c1)
+CREATE (d2)-[:USED_BY {lastUsed: datetime("2024-03-01T09:30:00")}]->(c2)
+// Pattern 1: Credential Stuffing - Single device accessing multiple accounts
 CREATE (d3)-[:USED_BY {lastUsed: datetime("2024-03-01T10:00:00")}]->(c1)
 CREATE (d3)-[:USED_BY {lastUsed: datetime("2024-03-01T10:02:00")}]->(c2)
 CREATE (d3)-[:USED_BY {lastUsed: datetime("2024-03-01T10:04:00")}]->(c3)
 
-// Pattern 2: Impossible travel - UK to China in 5 minutes
-CREATE (s1)-[:USES_IP]->(ip1)
-CREATE (ip1)-[:LOCATED_IN {createdAt: datetime("2024-03-01T10:00:00")}]->(l1)
-CREATE (s2)-[:USES_IP]->(ip3)
-CREATE (ip3)-[:LOCATED_IN {createdAt: datetime("2024-03-01T10:05:00")}]->(l3)
-
-// Pattern 3: Multiple failed login attempts from different IPs
-CREATE (s3)-[:USES_IP]->(ip2)
-CREATE (ip2)-[:LOCATED_IN {createdAt: datetime("2024-03-01T11:00:00")}]->(l2)
-CREATE (s4)-[:USES_IP]->(ip4)
-CREATE (ip4)-[:LOCATED_IN {createdAt: datetime("2024-03-01T11:05:00")}]->(l4)
-CREATE (s5)-[:USES_IP]->(ip5)
-CREATE (ip5)-[:LOCATED_IN {createdAt: datetime("2024-03-01T11:10:00")}]->(l5)
-
-// ISP relationships
-CREATE (ip1)-[:IS_ALLOCATED_TO {createdAt: datetime("2024-01-01T00:00:00")}]->(isp1)
-CREATE (ip2)-[:IS_ALLOCATED_TO {createdAt: datetime("2024-01-01T00:00:00")}]->(isp2)
-CREATE (ip3)-[:IS_ALLOCATED_TO {createdAt: datetime("2024-01-01T00:00:00")}]->(isp4)
-CREATE (ip4)-[:IS_ALLOCATED_TO {createdAt: datetime("2024-01-01T00:00:00")}]->(isp3)
-CREATE (ip5)-[:IS_ALLOCATED_TO {createdAt: datetime("2024-01-01T00:00:00")}]->(isp3)
-
-// Session device relationships
-CREATE (s1)-[:SESSION_USES_DEVICE]->(d1)
-CREATE (s2)-[:SESSION_USES_DEVICE]->(d3)
-CREATE (s3)-[:SESSION_USES_DEVICE]->(d2)
-CREATE (s4)-[:SESSION_USES_DEVICE]->(d2)
-CREATE (s5)-[:SESSION_USES_DEVICE]->(d2)
-
-// Customer account relationships
-CREATE (c1)-[:HAS_ACCOUNT {role: "owner", since: datetime("2024-01-01T00:00:00")}]->(a1)
-CREATE (c2)-[:HAS_ACCOUNT {role: "owner", since: datetime("2024-01-01T00:00:00")}]->(a2)
-CREATE (c3)-[:HAS_ACCOUNT {role: "owner", since: datetime("2024-01-01T00:00:00")}]->(a3)
-
-// Connect sessions to customers (for failed login attempts)
+//--------------------
+// Create Relationships: Sessions to Customers
+//--------------------
 CREATE (c1)-[:HAS_SESSION]->(s1)
 CREATE (c1)-[:HAS_SESSION]->(s2)
 CREATE (c2)-[:HAS_SESSION]->(s3)
 CREATE (c2)-[:HAS_SESSION]->(s4)
 CREATE (c2)-[:HAS_SESSION]->(s5)
+
+//--------------------
+// Create Relationships: Sessions to Devices and IPs
+//--------------------
+CREATE (s1)-[:SESSION_USES_DEVICE]->(d1)
+CREATE (s1)-[:USES_IP]->(ip1)
+
+// Pattern 2: Impossible travel - UK to China in 5 minutes
+CREATE (s2)-[:SESSION_USES_DEVICE]->(d3)
+CREATE (s2)-[:USES_IP]->(ip3)
+
+// Pattern 3: Multiple failed login attempts from different IPs and locations
+CREATE (s3)-[:SESSION_USES_DEVICE]->(d2)
+CREATE (s3)-[:USES_IP]->(ip2)
+CREATE (s4)-[:SESSION_USES_DEVICE]->(d2)
+CREATE (s4)-[:USES_IP]->(ip4)
+CREATE (s5)-[:SESSION_USES_DEVICE]->(d2)
+CREATE (s5)-[:USES_IP]->(ip5)
+
+//--------------------
+// Create Relationships: IPs to ISPs and Locations
+//--------------------
+CREATE (ip1)-[:IS_ALLOCATED_TO {createdAt: datetime("2024-01-01T00:00:00")}]->(isp1)
+CREATE (ip1)-[:LOCATED_IN {createdAt: datetime("2024-03-01T09:00:00")}]->(l1)
+
+CREATE (ip2)-[:IS_ALLOCATED_TO {createdAt: datetime("2024-01-01T00:00:00")}]->(isp2)
+CREATE (ip2)-[:LOCATED_IN {createdAt: datetime("2024-03-01T10:00:00")}]->(l2)
+
+CREATE (ip3)-[:IS_ALLOCATED_TO {createdAt: datetime("2024-01-01T00:00:00")}]->(isp4)
+CREATE (ip3)-[:LOCATED_IN {createdAt: datetime("2024-03-01T10:05:00")}]->(l3)
+
+CREATE (ip4)-[:IS_ALLOCATED_TO {createdAt: datetime("2024-01-01T00:00:00")}]->(isp3)
+CREATE (ip4)-[:LOCATED_IN {createdAt: datetime("2024-03-01T11:00:00")}]->(l4)
+
+CREATE (ip5)-[:IS_ALLOCATED_TO {createdAt: datetime("2024-01-01T00:00:00")}]->(isp3)
+CREATE (ip5)-[:LOCATED_IN {createdAt: datetime("2024-03-01T11:05:00")}]->(l5)
+
+//--------------------
+// Create Relationships: Event Chain and Session Events
+//--------------------
+CREATE (e1)-[:NEXT]->(e2)-[:NEXT]->(e3)-[:NEXT]->(e4)-[:NEXT]->(e5)-[:NEXT]->(e6)
+CREATE (s1)-[:HAS_AUTHENTICATION]->(e1)
+CREATE (s1)-[:HAS_CHANGE_PHONE]->(e2)
+CREATE (s1)-[:HAS_CHANGE_EMAIL]->(e3)
+CREATE (s1)-[:HAS_CHANGE_ADDRESS]->(e4)
+CREATE (s1)-[:HAS_ADD_EXTERNAL_ACCOUNT]->(e5)
+CREATE (s1)-[:HAS_TRANSFER]->(e6)
+CREATE (c1)-[:CONNECTS]->(e1)
+
+//--------------------
+// Create Relationships: Event Change Tracking (Old vs New)
+//--------------------
+CREATE (e2)-[:OLD_PHONE]->(originalPhone)
+CREATE (e2)-[:NEW_PHONE]->(newPhone)
+CREATE (e3)-[:OLD_EMAIL]->(originalEmail)
+CREATE (e3)-[:NEW_EMAIL]->(newEmail)
+CREATE (e4)-[:OLD_ADDRESS]->(originalAddr)
+CREATE (e4)-[:NEW_ADDRESS]->(newAddr)
+
+//--------------------
+// Create Relationships: Account Addition and Transaction
+//--------------------
+CREATE (e5)-[:ADD_ACCOUNT]->(fraudAccount)
+CREATE (e6)-[:HAS_TRANSACTION]->(fraudTransaction)
+CREATE (a1)-[:PERFORMS]->(fraudTransaction)-[:BENEFITS_TO]->(fraudAccount)
 ```
+
+==== Key Fraud Patterns in Demo Data
+
+1. **Credential Stuffing (Device DEV_SUSPICIOUS001)**: Single device accessing multiple customer accounts
+2. **Impossible Travel**: Session in London followed by session in Beijing within 5 minutes
+3. **Failed Login Attempts**: Customer 2 has multiple failed sessions from different global locations
+4. **Event Velocity**: Customer 1 - All account changes occur within 25 minutes (14:30-14:55)
+5. **Complete ATO Lifecycle**: Authentication → Phone/Email/Address changes → External account → £15,000 transfer
+6. **Forensic Trail**: Old vs new values preserved for phone, email, and address changes
 
 === 4.3. Neo4j Schema
 If you call:
@@ -246,11 +487,19 @@ In this query, we will identify devices that have been used to access multiple d
 
 View Graph:
 ```cypher
-// Show the relationships between suspicious devices and multiple accounts
-MATCH path=(d:Device)-[:USED_BY]->(c:Customer)-[:HAS_ACCOUNT]->(a:Account)
-WITH d, count(c) as accountCount
-WHERE accountCount > 1
+// Find all devices and the customers who use them MATCH (d:Device)-[:USED_BY]→(c:Customer)
+MATCH (d:Device)-[:USED_BY]->(c:Customer)
+
+// Count how many different customers use each device WITH d, count(DISTINCT c) as customerCount
+WITH d, count(DISTINCT c) as customerCount
+
+// Flag devices used by more than one customer WHERE customerCount > 1
+WHERE customerCount > 1
+
+// Retrieve the full network: device → customers → accounts MATCH path=(d)-[:USED_BY]→(c:Customer)-[:HAS_ACCOUNT]→(a:Account)
 MATCH path=(d)-[:USED_BY]->(c:Customer)-[:HAS_ACCOUNT]->(a:Account)
+
+// Return the suspicious pattern for investigation RETURN path
 RETURN path
 ```
 
@@ -444,3 +693,214 @@ ORDER BY uniqueLocations DESC
 * Failed attempts from known high-risk ISPs or locations
 * Systematic pattern in timing of attempts suggesting automation
 * Large number of unique IPs targeting single account
+
+=== 5.4. Event Velocity Analysis
+Detect rapid sequential account changes using chronological event chaining. This query identifies suspicious patterns where multiple critical account modifications occur in quick succession, indicating automated attacks.
+
+Detect Rapid Event Sequences:
+```cypher
+// Find sessions with rapid event sequences (multiple events within 30 minutes)
+MATCH (c:Customer)-[:CONNECTS]->(firstEvent)
+WHERE firstEvent:Authentication
+MATCH path = (firstEvent)-[:NEXT*]->(lastEvent)
+WITH c, firstEvent, lastEvent,
+     duration.inSeconds(firstEvent.createdAt, lastEvent.createdAt).seconds AS durationSeconds,
+     length(path) + 1 AS eventCount
+WHERE durationSeconds <= 1800 AND eventCount >= 3
+RETURN c.customerId AS CustomerID,
+       firstEvent.createdAt AS FirstEventTime,
+       lastEvent.createdAt AS LastEventTime,
+       eventCount AS NumberOfEvents,
+       durationSeconds / 60.0 AS DurationMinutes,
+       eventCount / (durationSeconds / 60.0) AS EventsPerMinute
+ORDER BY EventsPerMinute DESC
+```
+
+View Event Timeline with Time Deltas:
+```cypher
+// Show detailed event timeline with time between consecutive events
+MATCH (c:Customer)-[:CONNECTS]->(firstEvent:Authentication)
+MATCH path = (firstEvent)-[:NEXT*0..]->(event)
+WITH c, event,
+     [(event)-[:NEXT]->(nextEvent) | duration.inSeconds(event.createdAt, nextEvent.createdAt).seconds][0] AS secondsToNext
+ORDER BY event.createdAt
+RETURN c.customerId AS CustomerID,
+       labels(event) AS EventType,
+       event.createdAt AS EventTime,
+       secondsToNext AS SecondsToNextEvent,
+       secondsToNext / 60.0 AS MinutesToNextEvent
+ORDER BY c.customerId, EventTime
+```
+
+==== What It Does:
+* First query identifies sessions with abnormally fast event sequences:
+  * Detects 3+ events within 30 minutes
+  * Calculates total duration and event velocity
+  * Ranks by events per minute (higher = more suspicious)
+
+* Second query shows detailed event timeline:
+  * Lists all events in chronological order
+  * Shows time gaps between consecutive events
+  * Identifies unusually short intervals suggesting automation
+
+==== Risk Indicators:
+* More than 3 events within 15 minutes
+* Event velocity exceeding 1 event per 5 minutes
+* Consistent time intervals suggesting automated scripts
+* All contact information changes within single session
+
+=== 5.5. Account Takeover Lifecycle Detection
+Identify complete ATO attack patterns from authentication through fund transfer. This detects the classic account takeover sequence: unauthorized access → contact changes → external account addition → fraudulent transfer.
+
+Detect Complete ATO Pattern:
+```cypher
+// Find complete account takeover sequences ending in transfers
+MATCH (c:Customer)-[:CONNECTS]->(auth:Authentication)
+WHERE auth.status = "success"
+WITH c, auth
+MATCH (auth)-[:NEXT*1..10]->(changeEvent)
+WHERE changeEvent:ChangePhone OR changeEvent:ChangeEmail OR changeEvent:ChangeAddress
+WITH c, auth, changeEvent
+MATCH (changeEvent)-[:NEXT*1..5]->(add:AddExternalAccount)
+WITH c, auth, add
+MATCH (add)-[:NEXT*1..3]->(transfer:Transfer)-[:HAS_TRANSACTION]->(t:Transaction)
+RETURN DISTINCT c.customerId AS VictimCustomer,
+       auth.createdAt AS InitialAccessTime,
+       transfer.createdAt AS FraudTransferTime,
+       t.amount AS TransferAmount,
+       t.currency AS Currency,
+       duration.inSeconds(auth.createdAt, transfer.createdAt).seconds / 60.0 AS MinutesFromAccessToTransfer
+ORDER BY TransferAmount DESC
+```
+
+View Full Attack Chain:
+```cypher
+// Show complete event chain for suspected account takeover
+MATCH (c:Customer)-[:CONNECTS]->(auth:Authentication)
+MATCH path = (auth)-[:NEXT*]->(finalEvent)
+WHERE finalEvent:Transfer
+WITH c, auth, path, finalEvent
+MATCH (finalEvent)-[:HAS_TRANSACTION]->(t:Transaction)-[:BENEFITS_TO]->(externalAccount:Account:External)
+UNWIND nodes(path) AS event
+RETURN c.customerId AS CustomerID,
+       labels(event) AS EventType,
+       event.createdAt AS EventTime,
+       t.amount AS FraudAmount,
+       externalAccount.accountNumber AS DestinationAccount
+ORDER BY c.customerId, EventTime
+```
+
+==== What It Does:
+* First query detects complete ATO lifecycle:
+  * Starts with successful authentication
+  * Includes contact information changes
+  * Shows external account addition
+  * Ends with fraudulent transfer
+  * Calculates attack duration
+
+* Second query shows full attack chain:
+  * Lists every event in the sequence
+  * Identifies final destination account
+  * Shows total fraud amount
+  * Provides complete forensic timeline
+
+==== Risk Indicators:
+* Complete attack chain within 60 minutes
+* Large transfer amounts (>£10,000)
+* Transfers to high-risk jurisdictions
+* Multiple contact changes before transfer
+* New external accounts followed immediately by transfers
+
+=== 5.6. Change History Analysis
+Track old vs new values for forensic investigation. This enables fraud analysts to see exactly what changed during an account takeover, providing crucial evidence for investigations and customer restoration.
+
+View Phone Number Changes:
+```cypher
+// Show phone number changes with old and new values
+MATCH (c:Customer)-[:HAS_SESSION]->(s:Session)-[:HAS_CHANGE_PHONE]->(change:ChangePhone)
+MATCH (change)-[:OLD_PHONE]->(oldPhone:Phone)
+MATCH (change)-[:NEW_PHONE]->(newPhone:Phone)
+RETURN c.customerId AS CustomerID,
+       change.createdAt AS ChangeTime,
+       oldPhone.number AS OldPhoneNumber,
+       newPhone.number AS NewPhoneNumber,
+       s.sessionId AS SessionID
+ORDER BY change.createdAt DESC
+```
+
+View Email Changes:
+```cypher
+// Show email address changes with old and new values
+MATCH (c:Customer)-[:HAS_SESSION]->(s:Session)-[:HAS_CHANGE_EMAIL]->(change:ChangeEmail)
+MATCH (change)-[:OLD_EMAIL]->(oldEmail:Email)
+MATCH (change)-[:NEW_EMAIL]->(newEmail:Email)
+RETURN c.customerId AS CustomerID,
+       change.createdAt AS ChangeTime,
+       oldEmail.address AS OldEmailAddress,
+       newEmail.address AS NewEmailAddress,
+       newEmail.domain AS NewEmailDomain,
+       s.sessionId AS SessionID
+ORDER BY change.createdAt DESC
+```
+
+View Address Changes:
+```cypher
+// Show address changes with old and new values
+MATCH (c:Customer)-[:HAS_SESSION]->(s:Session)-[:HAS_CHANGE_ADDRESS]->(change:ChangeAddress)
+MATCH (change)-[:OLD_ADDRESS]->(oldAddr:Address)
+MATCH (change)-[:NEW_ADDRESS]->(newAddr:Address)
+RETURN c.customerId AS CustomerID,
+       change.createdAt AS ChangeTime,
+       oldAddr.addressLine1 + ', ' + oldAddr.postTown + ' ' + oldAddr.postCode AS OldAddress,
+       newAddr.addressLine1 + ', ' + newAddr.postTown + ' ' + newAddr.postCode AS NewAddress,
+       s.sessionId AS SessionID
+ORDER BY change.createdAt DESC
+```
+
+View All Changes for Customer:
+```cypher
+// Show complete change history for a specific customer
+MATCH (c:Customer {customerId: "CUS001"})-[:HAS_SESSION]->(s:Session)
+OPTIONAL MATCH (s)-[:HAS_CHANGE_PHONE]->(phoneChange:ChangePhone)
+OPTIONAL MATCH (phoneChange)-[:OLD_PHONE]->(oldPhone:Phone)
+OPTIONAL MATCH (phoneChange)-[:NEW_PHONE]->(newPhone:Phone)
+OPTIONAL MATCH (s)-[:HAS_CHANGE_EMAIL]->(emailChange:ChangeEmail)
+OPTIONAL MATCH (emailChange)-[:OLD_EMAIL]->(oldEmail:Email)
+OPTIONAL MATCH (emailChange)-[:NEW_EMAIL]->(newEmail:Email)
+OPTIONAL MATCH (s)-[:HAS_CHANGE_ADDRESS]->(addrChange:ChangeAddress)
+OPTIONAL MATCH (addrChange)-[:OLD_ADDRESS]->(oldAddr:Address)
+OPTIONAL MATCH (addrChange)-[:NEW_ADDRESS]->(newAddr:Address)
+RETURN c.customerId AS CustomerID,
+       coalesce(phoneChange.createdAt, emailChange.createdAt, addrChange.createdAt) AS ChangeTime,
+       CASE
+         WHEN phoneChange IS NOT NULL THEN 'Phone'
+         WHEN emailChange IS NOT NULL THEN 'Email'
+         WHEN addrChange IS NOT NULL THEN 'Address'
+       END AS ChangeType,
+       oldPhone.number AS OldPhone,
+       newPhone.number AS NewPhone,
+       oldEmail.address AS OldEmail,
+       newEmail.address AS NewEmail,
+       oldAddr.addressLine1 AS OldAddress,
+       newAddr.addressLine1 AS NewAddress
+ORDER BY ChangeTime
+```
+
+==== What It Does:
+* First three queries show specific change types:
+  * Phone number modifications with before/after values
+  * Email address changes including new domain
+  * Physical address updates with full details
+
+* Fourth query provides unified view:
+  * All changes for a customer in chronological order
+  * Change type identification (phone, email, address)
+  * Before and after values for each change
+  * Session tracking for audit purposes
+
+==== Use Cases:
+* Forensic investigation of compromised accounts
+* Customer account restoration after fraud
+* Fraud pattern analysis across multiple victims
+* Regulatory compliance and audit trails
+* Evidence gathering for law enforcement

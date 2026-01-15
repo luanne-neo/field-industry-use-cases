@@ -1,0 +1,340 @@
+{
+  "style": {
+    "font-family": "sans-serif",
+    "background-color": "#ffffff",
+    "background-image": "",
+    "background-size": "100%",
+    "node-color": "#ffffff",
+    "border-width": 4,
+    "border-color": "#000000",
+    "radius": 50,
+    "node-padding": 5,
+    "node-margin": 2,
+    "outside-position": "auto",
+    "node-icon-image": "",
+    "node-background-image": "",
+    "icon-position": "inside",
+    "icon-size": 64,
+    "caption-position": "inside",
+    "caption-max-width": 200,
+    "caption-color": "#000000",
+    "caption-font-size": 50,
+    "caption-font-weight": "normal",
+    "label-position": "inside",
+    "label-display": "pill",
+    "label-color": "#000000",
+    "label-background-color": "#ffffff",
+    "label-border-color": "#000000",
+    "label-border-width": 4,
+    "label-font-size": 40,
+    "label-padding": 5,
+    "label-margin": 4,
+    "directionality": "directed",
+    "detail-position": "inline",
+    "detail-orientation": "parallel",
+    "arrow-width": 5,
+    "arrow-color": "#000000",
+    "margin-start": 5,
+    "margin-end": 5,
+    "margin-peer": 20,
+    "attachment-start": "normal",
+    "attachment-end": "normal",
+    "relationship-icon-image": "",
+    "type-color": "#000000",
+    "type-background-color": "#ffffff",
+    "type-border-color": "#000000",
+    "type-border-width": 0,
+    "type-font-size": 16,
+    "type-padding": 5,
+    "property-position": "outside",
+    "property-alignment": "colon",
+    "property-color": "#000000",
+    "property-font-size": 16,
+    "property-font-weight": "normal"
+  },
+  "nodes": [
+    {
+      "id": "n0",
+      "position": {
+        "x": 1054.5523120689763,
+        "y": 347.69839606686867
+      },
+      "caption": "",
+      "labels": [
+        "Gene"
+      ],
+      "properties": {
+        "sid": "string",
+        "source": "string",
+        "symbol": "string"
+      },
+      "style": {
+        "node-color": "#ffffff"
+      }
+    },
+    {
+      "id": "n1",
+      "position": {
+        "x": 728.0348747126509,
+        "y": 347.6984135480076
+      },
+      "caption": "",
+      "labels": [
+        "ID"
+      ],
+      "properties": {
+        "source": "string",
+        "sid": "string"
+      },
+      "style": {
+        "node-color": "#ffffff"
+      }
+    },
+    {
+      "id": "n2",
+      "position": {
+        "x": 75,
+        "y": 674.2158334231946
+      },
+      "caption": "",
+      "labels": [
+        "Project"
+      ],
+      "properties": {
+        "name": "string",
+        "sid": "string"
+      },
+      "style": {
+        "node-color": "#ffffff"
+      }
+    },
+    {
+      "id": "n3",
+      "position": {
+        "x": 401.51743735632544,
+        "y": 674.2158334231946
+      },
+      "caption": "",
+      "labels": [
+        "Sample"
+      ],
+      "properties": {
+        "name": "string",
+        "sid": "string"
+      },
+      "style": {
+        "node-color": "#ffffff"
+      }
+    },
+    {
+      "id": "n4",
+      "position": {
+        "x": 728.0348747126509,
+        "y": 674.2158334231946
+      },
+      "caption": "",
+      "labels": [
+        "Experiment"
+      ],
+      "properties": {
+        "type": "string",
+        "sid": "string"
+      },
+      "style": {
+        "node-color": "#ffffff"
+      }
+    },
+    {
+      "id": "n5",
+      "position": {
+        "x": 916.5497949726922,
+        "y": 1000.7332532983814
+      },
+      "caption": "",
+      "labels": [
+        "Comparison"
+      ],
+      "properties": {},
+      "style": {
+        "node-color": "#ffffff"
+      }
+    },
+    {
+      "id": "n6",
+      "position": {
+        "x": 401.51743735632544,
+        "y": 370.2168332835229
+      },
+      "caption": "",
+      "labels": [
+        "Tissue"
+      ],
+      "properties": {},
+      "style": {
+        "node-color": "#ffffff"
+      }
+    },
+    {
+      "id": "n7",
+      "position": {
+        "x": 1293.5796354927747,
+        "y": 1000.7332532983814
+      },
+      "caption": "",
+      "labels": [
+        "Disease"
+      ],
+      "properties": {},
+      "style": {
+        "node-color": "#ffffff"
+      }
+    },
+    {
+      "id": "n8",
+      "position": {
+        "x": 1352.2507256169838,
+        "y": 347.698413548008
+      },
+      "caption": "",
+      "labels": [
+        "Protein"
+      ],
+      "properties": {},
+      "style": {
+        "node-color": "#ffffff"
+      }
+    },
+    {
+      "id": "n10",
+      "position": {
+        "x": 1352.2507256169838,
+        "y": 50
+      },
+      "caption": "",
+      "labels": [
+        "GO"
+      ],
+      "properties": {},
+      "style": {
+        "node-color": "#ffffff"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "id": "n0",
+      "fromId": "n0",
+      "toId": "n1",
+      "type": "MAPPED",
+      "properties": {},
+      "style": {}
+    },
+    {
+      "id": "n1",
+      "fromId": "n2",
+      "toId": "n3",
+      "type": "HAS_SAMPLE",
+      "properties": {},
+      "style": {}
+    },
+    {
+      "id": "n2",
+      "fromId": "n3",
+      "toId": "n4",
+      "type": "HAS_EXPERIMENT",
+      "properties": {},
+      "style": {}
+    },
+    {
+      "id": "n3",
+      "fromId": "n5",
+      "toId": "n4",
+      "type": "COMPARES",
+      "properties": {},
+      "style": {}
+    },
+    {
+      "id": "n4",
+      "fromId": "n4",
+      "toId": "n0",
+      "type": "HAS_VALUE",
+      "properties": {},
+      "style": {}
+    },
+    {
+      "id": "n5",
+      "fromId": "n3",
+      "toId": "n6",
+      "type": "TAKEN_FROM",
+      "properties": {},
+      "style": {}
+    },
+    {
+      "id": "n6",
+      "fromId": "n5",
+      "toId": "n3",
+      "type": "INCLUDES_CASE",
+      "properties": {},
+      "style": {}
+    },
+    {
+      "id": "n7",
+      "fromId": "n5",
+      "toId": "n3",
+      "type": "INCLUDES_CONTROL",
+      "properties": {},
+      "style": {}
+    },
+    {
+      "id": "n8",
+      "fromId": "n5",
+      "toId": "n7",
+      "type": "STUDIES_DISEASE",
+      "properties": {},
+      "style": {}
+    },
+    {
+      "id": "n9",
+      "fromId": "n0",
+      "toId": "n7",
+      "type": "RELATED_TO",
+      "properties": {},
+      "style": {}
+    },
+    {
+      "id": "n10",
+      "fromId": "n5",
+      "toId": "n0",
+      "type": "FOUND_DIFFERENTIAL",
+      "properties": {},
+      "style": {}
+    },
+    {
+      "id": "n11",
+      "fromId": "n0",
+      "toId": "n8",
+      "type": "CODES",
+      "properties": {},
+      "style": {}
+    },
+    {
+      "id": "n12",
+      "fromId": "n8",
+      "toId": "n8",
+      "type": "INTERACTS_WITH",
+      "properties": {},
+      "style": {
+        "attachment-start": "bottom",
+        "attachment-end": "right"
+      }
+    },
+    {
+      "id": "n15",
+      "fromId": "n8",
+      "toId": "n10",
+      "type": "ASSOCIATED_WITH",
+      "properties": {},
+      "style": {}
+    }
+  ]
+}
